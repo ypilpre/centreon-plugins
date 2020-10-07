@@ -135,8 +135,6 @@ sub get_port {
 sub query_absolute {
     my ($self, %options) = @_;
 
-    my $data;
-
     my $start_time = DateTime->now->subtract(seconds => $options{timeframe}).'.000';
     $start_time =~ s/T/ /;
     $start_time =~ s/ /%20/;
@@ -170,12 +168,12 @@ sub get_endpoint {
         $self->{output}->option_exit();
     }
 
-    if ($content->{status} ne 'success') {
-        $self->{output}->add_option_msg(short_msg => "Cannot get data: " . $content->{status});
-        $self->{output}->option_exit();
-    }
+    #if ($content->{status} ne 'success') {
+    #    $self->{output}->add_option_msg(short_msg => "Cannot get data: " . $content->{status});
+    #    $self->{output}->option_exit();
+    #}
     
-    return $content->{data};
+    return $content;
 }
 
 1;

@@ -33,11 +33,11 @@ sub set_counters {
     ];
 
     $self->{maps_counters}->{global} = [
-        { label => 'count', nlabel => 'graylog.query.match.count', set => {
-                key_values => [ { name => 'count' } ],
+        { label => 'queue-messages', nlabel => 'graylog.query.match.count', set => {
+                key_values => [ { name => 'queue_messages' } ],
                 output_template => 'current queue messages : %s',
                 perfdatas => [
-                    { label => 'queue_msg', value => 'queue_messages_absolute', template => '%d',
+                    { label => 'queue_msg', value => 'queue_messages', template => '%d',
                       min => 0 },
                 ],
             }
@@ -62,9 +62,8 @@ sub manage_selection {
 
     my $result = $options{custom}->query_absolute(query => $self->{option_results}->{query},
                                                   timeframe => $self->{option_results}->{timeframe});
-    use Data::Dumper; print Dumper($result);
     $self->{global} = {
-
+	queue_messages => $result->{total_results}
     };
 
 
@@ -80,9 +79,13 @@ Perform Lucene queries against Graylog API
 
 =over 8
 
-=item B<--warning-count> B<--critical-count>
+=item B<--query>
 
-Threshold on the number of results
+Set a Lucene query.
+
+=item B<--warning-queue-messages> B<--critical-queue-messages>
+
+Threshold on the number of results.
 
 =back
 

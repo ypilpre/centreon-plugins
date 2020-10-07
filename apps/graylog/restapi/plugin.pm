@@ -31,7 +31,9 @@ sub new {
 
     $self->{version} = '0.1';
     %{$self->{modes}} = ( 
-        'query'    => 'apps::graylog::restapi::mode::query',
+        'query'         => 'apps::graylog::restapi::mode::query',
+        'notifications' => 'apps::graylog::restapi::mode::notifications',
+	'cluster'       => 'apps::graylog::restapi::mode::cluster', 
     );
     $self->{custom_modes}{api} = 'apps::graylog::restapi::custom::api';
     return $self;
@@ -43,6 +45,6 @@ __END__
 
 =head1 PLUGIN DESCRIPTION
 
-Check Elasticsearch through HTTP/REST API.
+Check Graylogs through HTTP/REST API.
 
 =cut
