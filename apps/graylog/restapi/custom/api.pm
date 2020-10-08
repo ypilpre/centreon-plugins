@@ -168,11 +168,6 @@ sub get_endpoint {
         $self->{output}->option_exit();
     }
 
-    #if ($content->{status} ne 'success') {
-    #    $self->{output}->add_option_msg(short_msg => "Cannot get data: " . $content->{status});
-    #    $self->{output}->option_exit();
-    #}
-    
     return $content;
 }
 

@@ -52,7 +52,6 @@ sub new {
 
     $options{options}->add_options(arguments => {
         "query:s"       => { name => 'query' },
-        "timeframe:s"   => { name => 'timeframe', default => '300'}
     });
     return $self;
 }
@@ -65,8 +64,6 @@ sub manage_selection {
     $self->{global} = {
 	queue_messages => $result->{total_results}
     };
-
-
 }
 
 1;
