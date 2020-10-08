@@ -52,7 +52,9 @@ sub new {
 
     $options{options}->add_options(arguments => {
         "query:s"       => { name => 'query' },
+	"timeframe:s"   => { name => 'timeframe', default => '300'}
     });
+
     return $self;
 }
 
@@ -74,11 +76,21 @@ __END__
 
 Perform Lucene queries against Graylog API
 
+Example:
+perl centreon_plugins.pl --plugin=apps::graylog::restapi::plugin 
+--mode=query --hostname=10.0.0.1 --username='username' --password='password' --credentials --query='my query'
+
+More information on https://docs.graylog.org/en/<version>/pages/configuration/rest_api.html
+
 =over 8
 
 =item B<--query>
 
 Set a Lucene query.
+
+=item B<--timeframe>
+
+Set timeframe in seconds (E.g '300' to check last 5 minutes).
 
 =item B<--warning-queue-messages> B<--critical-queue-messages>
 

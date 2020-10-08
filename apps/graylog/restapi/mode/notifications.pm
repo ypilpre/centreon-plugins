@@ -73,6 +73,7 @@ sub new {
         'filter-severity:s'   => { name => 'filter_severity' },
         'filter-node:s'       => { name => 'filter_node' },
     });
+
     return $self;
 }
 
@@ -111,7 +112,13 @@ __END__
 
 =head1 MODE
 
-Perform Lucene queries against Graylog API
+Check Graylog system notifications using Graylog API
+
+Example:
+perl centreon_plugins.pl --plugin=apps::graylog::restapi::plugin
+--mode=notifications --hostname=10.0.0.1 --username='username' --password='password' --credentials
+
+More information on https://docs.graylog.org/en/<version>/pages/configuration/rest_api.html
 
 =over 8
 
