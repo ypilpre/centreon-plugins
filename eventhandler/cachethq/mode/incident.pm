@@ -91,20 +91,7 @@ sub check_options {
         $self->{output}->add_option_msg(short_msg => "You need to set --cachet-token option");
         $self->{output}->option_exit();
     }
-    # if (((!defined($self->{option_results}->{host_name})) || ($self->{option_results}->{host_name} eq '')) ||
-    #     ((!defined($self->{option_results}->{service_description})) || ($self->{option_results}->{service_description} eq ''))) 
-    #     {
-    #     $self->{output}->add_option_msg(short_msg => "You need to specify --host-name or --service-description option.");
-    #     $self->{output}->option_exit();
-    # }
-    # if (!defined($self->{option_results}->{host_state} || $self->{option_results}->{service_state}) eq '') {
-    #     $self->{output}->add_option_msg(short_msg => "You need to specify --host-state or --service-state option.");
-    #     $self->{output}->option_exit();
-    # }
-    # if (!defined($self->{option_results}->{host_state_type} || $self->{option_results}->{service_state_type}) eq '') {
-    #     $self->{output}->add_option_msg(short_msg => "You need to specify --host-state-type or --host-state-type option.");
-    #     $self->{output}->option_exit();
-    # }
+ 
     $self->{http}->set_options(%{$self->{option_results}});
     $self->{cache}->check_options(option_results => $self->{option_results});
 
@@ -207,10 +194,8 @@ sub run {
     if (defined($incident_id)) {
         my $check_url_path_ = $url_path.'/'.$incident_id;
         my $check_verb = 'GET';
-        my $check_response = $self->{http}->request(url_path => $check_url_path_, method => $check_verb,unknown_status=>'%{http_code}>=500');
-        
+        my $check_response = $self->{http}->request(url_path => $check_url_path_, method => $check_verb,unknown_status=>'%{http_code}>=500'); 
         my $check_decoded = JSON::XS->new->utf8->decode($check_response);
-          
          if (defined($check_decoded->{data}->{id})) {
          $verb = 'PUT';
          $url_path  = $url_path.'/'.$incident_id;
