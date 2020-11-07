@@ -254,55 +254,57 @@ Manage EventHandler with CachetHQ API.
 
 =over 6
 
-=item B<--chat-id>
+=item B<--hostname>
 
-Telegram Chat ID (Negative Integer for Group)
-Use Telegram CLI for getting Chat ID
+CachetHQ server FQDN or IP (Default : localhost)
 
-=item B<--bot-token>
+=item B<--port>
 
-Telegram Bot Token (Check Telegram Doc for Creating Bot)
-https://core.telegram.org/bots#3-how-do-i-create-a-bot
+CachetHQ server Port (Default : 8000)
+
+=item B<--proto>
+
+Protocol used for accessing CachetHQ (Default : http)
+
+=item B<--cachet-token>
+
+CachetHQ API Token generated from the Dashboard (Mandatory)
+
+=item B<--cachet-application>
+
+Identification of Application Calling to CachetHQ (Default : Centreon)
+
+=item B<--cachet-notify>
+
+Notify CachetHQ Subscribers about the incident.
 
 =item B<--host-state>
 
-Specify host server state for the alert.
+Specify host server state for the incident.
+
+=item B<--host-state-type>
+
+Specify host server state type for the incident.
 
 =item B<--host-output>
 
-Specify host server output message for the alert.
-
-=item B<--host-name>
-
-Specify host server name for the alert (Required).
+Specify host server output message for the incident.
 
 =item B<--service-description>
 
-Specify service description name for the alert.
+Specify service description name for the incident.
 
 =item B<--service-state>
 
-Specify service state for the alert.
+Specify service state for the incident.
+
+=item B<--service-state-type>
+
+Specify service state type for the incident.
 
 =item B<--service-output>
 
-Specify service output message for the alert.
-
-=item B<--centreon-url>
-
-Specify the centreon url macro (could be used in link-url and graph-url option).
-
-=item B<--centreon-token>
-
-Specify the centreon token for autologin macro (could be used in link-url and graph-url option).
-
-=item B<--graph-url>
-
-Specify the graph url (Example: %{centreon_url}/include/views/graphs/generateGraphs/generateImage.php?username=myuser&token=%{centreon_token}&hostname=%{host_name}&service=%{service_description}).
-
-=item B<--link-url>
-
-Specify the link url (Example: %{centreon_url}/main.php?p=20201&o=svc&host_search=%{host_name}&svc_search=%{service_description})
+Specify service output message for the incident.
 
 =item B<--timeout>
 
