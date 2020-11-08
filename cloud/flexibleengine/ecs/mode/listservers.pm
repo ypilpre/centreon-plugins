@@ -57,8 +57,8 @@ sub run {
     foreach  (@{$self->{servers}}) {
         
         $self->{output}->output_add(
-            long_msg => sprintf("[Id = %s][Name= %s][AvailabilityZone = %s][State][State = %s]",
-             $_->{Id},$_->{Name}, $_->{AvailabilityZone},$_->{State}, $_->{State}));
+            long_msg => sprintf("[Id = %s][Name= %s][AvailabilityZone = %s][Status = %s]",
+             $_->{Id},$_->{Name}, $_->{AvailabilityZone}, $_->{Status}));
     }
     $self->{output}->output_add(severity => 'OK',
                                 short_msg => 'List servers:');
@@ -69,7 +69,7 @@ sub run {
 sub disco_format {
     my ($self, %options) = @_;
 
-    $self->{output}->add_disco_format(elements => ['id', 'name', 'availabilityzone' ,'state']);
+    $self->{output}->add_disco_format(elements => ['id', 'name', 'availabilityzone' ,'status']);
 }
 
 sub disco_show {
@@ -81,7 +81,7 @@ sub disco_show {
             id => $_->{Id},
             name => $_->{Name},
             availabilityzone => $_->{AvailabilityZone},
-            state => $_->{State}
+            status => $_->{Status}
         );
     }
 }

@@ -242,7 +242,7 @@ sub internal_api_list_servers {
     return $servers_list->{servers};
 }
 
-sub internal_api_detail_servers {
+sub internal_api_detail_server {
     my ($self, %options) = @_;
     $self->{ecs_endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
     my $server_detail = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v2/'.$self->{project_id}.'/servers/'.$options{server_id},hostname => '');
@@ -256,10 +256,10 @@ sub api_list_servers {
     my $servers = [];
     my $list_servers = $self->internal_api_list_servers();
     foreach  my $server (@{$list_servers}) {
-        my $server_detail = $self->internal_api_detail_servers(server_id=>$server->{id});
+        my $server_detail = $self->internal_api_detail_server(server_id=>$server->{id});
         push @{$servers} , {
             Id => $server_detail->{id},
-            State => $server_detail->{status},
+            Status => $server_detail->{status},
             AvailabilityZone => $server_detail->{'OS-EXT-AZ:availability_zone'},
             Name => $server_detail->{name},
             
@@ -268,6 +268,26 @@ sub api_list_servers {
 
     return $servers;
 }
+
+sub api_get_servers_status {
+  my ($self, %options) = @_;
+
+    my $servers = [];
+    my $list_servers = $self->internal_api_list_servers();
+    foreach  my $server (@{$list_servers}) {
+        my $server_detail = $self->internal_api_detail_server(server_id=>$server->{id});
+        push @{$servers} , {
+            Id => $server_detail->{id},
+            Status => $server_detail->{status},
+            State => $server_detail->{'OS-EXT-STS:vm_state'},
+            Name => $server_detail->{name},
+            
+        };
+    }
+
+    return $servers;
+}
+
 
 
 1;
