@@ -282,7 +282,6 @@ sub api_list_full_servers {
     return $servers;
 }
 
-
 sub api_get_servers_status {
   my ($self, %options) = @_;
 
@@ -302,7 +301,16 @@ sub api_get_servers_status {
     return $servers;
 }
 
-
+sub api_get_cloudeye_metrics {
+    my ($self, %options) = @_;
+    $self->{ces_endpoint} = 'https://ces.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $uri= $self->{ces_endpoint} .'/V1.0/'.$self->{project_id}.'/metrics?';
+    if (defined($options{namespace})){
+    $uri = $uri."namespace=".$options{namespace};
+    }
+    my $metrics_list = $self->request_api(method => 'GET', full_url =>$uri,hostname => '');
+    return $metrics_list->{metrics};
+}
 
 
 
