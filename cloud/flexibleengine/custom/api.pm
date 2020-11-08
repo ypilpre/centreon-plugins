@@ -269,6 +269,20 @@ sub api_list_servers {
     return $servers;
 }
 
+sub api_list_full_servers {
+  my ($self, %options) = @_;
+
+    my $servers = [];
+    my $list_servers = $self->internal_api_list_servers();
+    foreach  my $server (@{$list_servers}) {
+        my $server_detail = $self->internal_api_detail_server(server_id=>$server->{id});
+        push @{$servers} ,$server_detail;
+    }
+
+    return $servers;
+}
+
+
 sub api_get_servers_status {
   my ($self, %options) = @_;
 
@@ -287,6 +301,8 @@ sub api_get_servers_status {
 
     return $servers;
 }
+
+
 
 
 
