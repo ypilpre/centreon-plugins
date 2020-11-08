@@ -76,7 +76,7 @@ sub disco_show {
     my ($self, %options) = @_;
 
     $self->manage_selection(%options);
-    foreach  (sort keys @{$self->{servers}}) {
+    foreach  (@{$self->{servers}}) {
         $self->{output}->add_disco_entry(
             id => $_->{Id},
             name => $_->{Name},
