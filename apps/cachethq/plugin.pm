@@ -18,7 +18,7 @@
 # limitations under the License.
 #
 
-package eventhandler::cachethq::plugin;
+package apps::cachethq::plugin;
 
 use strict;
 use warnings;
@@ -31,7 +31,7 @@ sub new {
 
     $self->{version} = '1.0';
     %{$self->{modes}} = (
-        'incident'    => 'eventhandler::cachethq::mode::incident',
+        'incident'    => 'apps::cachethq::mode::incident',
     );
 
     return $self;
@@ -43,6 +43,6 @@ __END__
 
 =head1 PLUGIN DESCRIPTION
 
-Send Cachet HQ notifications via event handler.
+Send Cachet HQ incident via event handler.
 
 =cut

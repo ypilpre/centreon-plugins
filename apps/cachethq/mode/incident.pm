@@ -18,7 +18,7 @@
 # limitations under the License.
 #
 
-package eventhandler::cachethq::mode::incident;
+package apps::cachethq::mode::incident;
 
 use base qw(centreon::plugins::mode);
 
