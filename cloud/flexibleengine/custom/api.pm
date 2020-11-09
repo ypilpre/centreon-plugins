@@ -114,14 +114,14 @@ sub check_options {
     $self->{http}->set_options(%{$self->{option_results}});
 }
 
-sub get_access_token {
+sub get_user_token {
     my ($self, %options) = @_;
 
     my $has_cache_file = $options{statefile}->read(statefile => 'flexible_engine_api_' . md5_hex($self->{domain_id}) . '_' . md5_hex($self->{project_id}). '_' . md5_hex($self->{username}));
     my $expires_on = $options{statefile}->get(name => 'expires_on');
-    my $access_token = $options{statefile}->get(name => 'access_token');
+    my $user_token = $options{statefile}->get(name => 'user_token');
 
-    if ($has_cache_file == 0 || !defined($access_token) || (($expires_on - time()) < 10)) {
+    if ($has_cache_file == 0 || !defined($user_token) || (($expires_on - time()) < 10)) {
 
         my $json_request = { auth=>{identity=>{methods=>["password"],
                              password=>{
@@ -171,13 +171,58 @@ sub get_access_token {
 
             
         }
-        $access_token = $self->{http}->get_header(name=>'x-subject-token');
-        my $datas = { last_timestamp => time(),access_token=> $access_token, expires_on => int(str2time($decoded->{token}{expires_at})) };
+        $user_token = $self->{http}->get_header(name=>'x-subject-token');
+        my $datas = { last_timestamp => time(),user_token=> $user_token ,expires_on => int(str2time($decoded->{token}{expires_at})) };
         $options{statefile}->write(data => $datas);
 
     }
 
-    return $access_token;
+    return $user_token;
+}
+
+sub get_access_secret_token{
+ my ($self, %options) = @_;
+
+    my $has_cache_file = $options{statefile}->read(statefile => 'flexible_engine_api_' . md5_hex($self->{domain_id}) . '_' . md5_hex($self->{project_id}). '_' . md5_hex($self->{username}));
+    my $expires_on = $options{statefile}->get(name => 'expires_on');
+    my $user_token = $options{statefile}->get(name => 'user_token');
+
+       $self->{http}->add_header(key => 'Content-Type', value => 'application/json;charset=utf8');
+
+        my $json_request = { auth=>{identity=>{methods=>["token"],
+                             token=>{
+                                 id=>$user_token,
+                                 duration =>86400}
+                                 }
+                               
+                             }
+                           };
+        my $encoded;
+        eval {
+          $encoded = encode_json($json_request);
+        };
+        my $content = $self->{http}->request(method => 'POST', query_form_post => $encoded,
+                                             full_url => $self->{iam_endpoint} . '/v3.0/OS-CREDENTIAL/securitytokens',
+                                             hostname => '');
+
+        my $decoded;
+        eval {
+            $decoded = JSON::XS->new->utf8->decode($content);
+        };
+        if ($@) {
+            $self->{output}->output_add(long_msg => $content, debug => 1);
+            $self->{output}->add_option_msg(short_msg => "Cannot decode json response");
+            $self->{output}->option_exit();
+        }
+        if (defined($decoded->{error})) {
+            $self->{output}->output_add(long_msg => "Error message : " . $decoded->{error_description}, debug => 1);
+            $self->{output}->add_option_msg(short_msg => "Login endpoint API return error code '" . $decoded->{error} . "' (add --debug option for detailed message)");
+        }
+         if (!defined($decoded->{credential}->{access})) {
+            $self->{output}->output_add(long_msg => "Unable to Retrieve AS/SK");
+            $self->{output}->option_exit();
+         }
+
 }
 
 sub get_region {
@@ -200,8 +245,8 @@ sub settings {
     $self->build_options_for_httplib();
     $self->{http}->add_header(key => 'Accept', value => 'application/json');
     $self->{http}->add_header(key => 'Content-Type', value => 'application/json');
-    if (defined($self->{access_token})) {
-        $self->{http}->add_header(key => 'X-Auth-Token', value =>  $self->{access_token});
+    if (defined($self->{user_token})) {
+        $self->{http}->add_header(key => 'X-Auth-Token', value =>  $self->{user_token});
     }
     $self->{http}->set_options(%{$self->{option_results}});
 }
@@ -210,9 +255,9 @@ sub settings {
 sub request_api {
     my ($self, %options) = @_;
 
-    if (!defined($self->{access_token})) {
+    if (!defined($self->{user_token})) {
 
-        $self->{access_token} = $self->get_access_token(statefile => $self->{cache});
+        $self->{user_token} = $self->get_user_token(statefile => $self->{cache});
 
     }
     $self->settings();
@@ -237,15 +282,15 @@ sub request_api {
 }
 sub internal_api_list_servers {
     my ($self, %options) = @_;
-    $self->{ecs_endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $servers_list = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v2/'.$self->{project_id}.'/servers',hostname => '');
+    $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $servers_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2/'.$self->{project_id}.'/servers',hostname => '');
     return $servers_list->{servers};
 }
 
 sub internal_api_detail_server {
     my ($self, %options) = @_;
-    $self->{ecs_endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $server_detail = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v2/'.$self->{project_id}.'/servers/'.$options{server_id},hostname => '');
+    $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $server_detail = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2/'.$self->{project_id}.'/servers/'.$options{server_id},hostname => '');
     return $server_detail->{server};
 }
 
@@ -282,6 +327,56 @@ sub api_list_full_servers {
     return $servers;
 }
 
+sub api_list_vpc {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://vpc.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $vpcs_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/vpcs',hostname => '');
+    return $vpcs_list;
+}
+
+
+sub api_list_rds {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://rds.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $rds_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/vpcs',hostname => '');
+    return $rds_list;
+}
+
+sub api_list_css {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://css.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $css_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1.0/'.$self->{project_id}.'/clusters',hostname => '');
+    return $css_list;
+}
+
+sub api_list_evs {
+    my ($self, %options) = @_;
+    $self->{ecs_endpoint} = 'https://evs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $evs_list = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v2/'.$self->{project_id}.'/os-vendor-volumes/detail',hostname => '');
+    return $evs_list;
+}
+
+sub api_list_nat {
+    my ($self, %options) = @_;
+    $self->{ecs_endpoint} = 'https://nat.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $nat_list = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v2.0/nat_gateways',hostname => '');
+    return $nat_list;
+}
+
+sub api_list_elb {
+    my ($self, %options) = @_;
+    $self->{ecs_endpoint} = 'https://elb    .'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $elb_list = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v2.0/lbaas/loadbalancers',hostname => '');
+    return $elb_list;
+}
+
+sub api_list_clb {
+    my ($self, %options) = @_;
+    $self->{ecs_endpoint} = 'https://elb    .'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $clb_list = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v1.0/'.$self->{project_id}.'/elbaas/loadbalancers',hostname => '');
+    return $clb_list;
+}
+
 sub api_get_servers_status {
   my ($self, %options) = @_;
 
@@ -301,18 +396,107 @@ sub api_get_servers_status {
     return $servers;
 }
 
-sub api_get_cloudeye_metrics {
+sub api_cloudeye_list_metrics {
     my ($self, %options) = @_;
     $self->{ces_endpoint} = 'https://ces.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
     my $uri= $self->{ces_endpoint} .'/V1.0/'.$self->{project_id}.'/metrics?';
     if (defined($options{namespace})){
     $uri = $uri."namespace=".$options{namespace};
     }
+    if (defined($options{metric})){
+    $uri = $uri."&metric_name=".$options{metric};
+    }
     my $metrics_list = $self->request_api(method => 'GET', full_url =>$uri,hostname => '');
     return $metrics_list->{metrics};
 }
 
+sub internal_api_cloudeyes_get_metric {
+     my ($self, %options) = @_;
+    $self->{ces_endpoint} = 'https://ces.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $uri= $self->{ces_endpoint} .'/V1.0/'.$self->{project_id}.'/metric-data?';
+    if (defined($options{namespace})){
+    $uri = $uri."namespace=$options{namespace}";
+    }
+    if (defined($options{metric})){
+    $uri = $uri."&metric_name=$options{metric}";
+    }
+    if (defined($options{dimension})){
+    $uri = $uri."&dim.0=$options{dimension}";
+    }
+    if (defined($options{end_time}) && defined($options{start_time})){
+    $uri = $uri."&from=$options{start_time}&to=$options{end_time}";
+    $uri = $uri."&period=$options{period}";
+    }
+    if (defined($options{filter})){
+    $uri = $uri."&filter=$options{filter}";
+    }
+    my $metrics = $self->request_api(method => 'GET', full_url =>$uri,hostname => '');
+    return $metrics;
+}
 
+sub api_cloudeyes_get_metric {
+    my ($self, %options) = @_;
+
+    my $metric_results = {};
+    my $start_time = (DateTime->now->subtract(seconds => $options{frame})->epoch())*1000;
+    my $end_time = (DateTime->now->epoch())*1000;
+
+    my $raw_results = $self->internal_api_cloudeyes_get_metric(%options, metric_name => $options{metric},
+            start_time => $start_time, end_time => $end_time,period=>$options{period},filter=>$options{filter});
+
+        $metric_results->{$raw_results->{metric_name}} = { points => 0 };
+        foreach my $point (@{$raw_results->{datapoints}}) {
+            if (defined($point->{average})) {
+                $metric_results->{$raw_results->{metric_name}}->{average} = 0 if (!defined($metric_results->{$raw_results->{metric_name}}->{average}));
+                $metric_results->{$raw_results->{metric_name}}->{average} += $point->{average};
+            }
+            if (defined($point->{min})) {
+                $metric_results->{$raw_results->{metric_name}}->{min} = $point->{min}
+                    if (!defined($metric_results->{$raw_results->{metric_name}}->{min}) || $point->{min} < $metric_results->{$raw_results->{metric_name}}->{min});
+            }
+            if (defined($point->{max})) {
+                $metric_results->{$raw_results->{metric_name}}->{max} = $point->{max}
+                    if (!defined($metric_results->{$raw_results->{metric_name}}->{max}) || $point->{max} > $metric_results->{$raw_results->{metric_name}}->{max});
+            }
+            if (defined($point->{sum})) {
+                $metric_results->{$raw_results->{metric_name}}->{sum} = 0 if (!defined($metric_results->{$raw_results->{metric_name}}->{sum}));
+                $metric_results->{$raw_results->{metric_name}}->{sum} += $point->{sum};
+            }
+             if (defined($point->{variance})) {
+                $metric_results->{$raw_results->{metric_name}}->{variance} = 0 if (!defined($metric_results->{$raw_results->{metric_name}}->{variance}));
+                $metric_results->{$raw_results->{metric_name}}->{variance} += $point->{variance};
+            }
+
+            $metric_results->{$raw_results->{metric_name}}->{points}++;
+        }
+
+        if (defined($metric_results->{$raw_results->{metric_name}}->{average})) {
+            $metric_results->{$raw_results->{metric_name}}->{average} /= $metric_results->{$raw_results->{metric_name}}->{points};
+        }
+    
+    
+    return $metric_results;
+}
+
+sub api_discovery {
+    my ($self, %options) = @_;
+    my $api_result = {};
+    if ($options{service} eq 'ecs'){
+        $api_result = $self->api_list_full_servers(%options)
+    }
+     if ($options{service} eq 'vpc'){
+        $api_result = $self->api_list_vpc(%options)
+    }
+    return $api_result;
+}
+
+sub discovery {
+    my ($self, %options) = @_;
+
+    my $raw_results =  $self->api_discovery(%options);
+
+    return $raw_results;
+}
 
 1;
 
