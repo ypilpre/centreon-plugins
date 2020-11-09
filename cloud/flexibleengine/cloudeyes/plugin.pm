@@ -33,7 +33,7 @@ sub new {
     %{ $self->{modes} } = (
         'discovery'     => 'cloud::flexibleengine::cloudeyes::mode::discovery',
         'get-alarms'    => 'cloud::flexibleengine::cloudeyes::mode::getalarms',
-        'get-metrics'   => 'cloud::flexibleengine::cloudeyes::mode::getmetrics',
+        'get-metric'   => 'cloud::flexibleengine::cloudeyes::mode::getmetric',
         'list-metrics'  => 'cloud::flexibleengine::cloudeyes::mode::listmetrics',
     );
 

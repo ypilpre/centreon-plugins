@@ -46,7 +46,7 @@ sub check_options {
 sub manage_selection {
     my ($self, %options) = @_;
 
-    $self->{metrics} = $options{custom}->api_get_cloudeye_metrics(
+    $self->{metrics} = $options{custom}->api_cloudeye_list_metrics(
         namespace => $self->{option_results}->{namespace},
         metric => $self->{option_results}->{metric}
     );
@@ -59,7 +59,7 @@ sub get_dimensions_str {
     my $dimensions = '';
     my $append = '';
     foreach (@{$options{dimensions}}) {
-        $dimensions .= $append . "Name=$_->{name},Value=$_->{value}";
+        $dimensions .= $append . "$_->{name},$_->{value}";
         $append = ',';
     }
 
@@ -70,7 +70,7 @@ sub run {
     my ($self, %options) = @_;
 
     $self->manage_selection(%options);
-    foreach (@{$self->{metrics}}) {
+    foreach ( @{$self->{metrics}}) {
         $self->{output}->output_add(long_msg => sprintf("[Namespace = %s][Dimensions = %s][Metric = %s]",
             $_->{namespace}, $self->get_dimensions_str(dimensions => $_->{dimensions}), $_->{metric_name}));
     }
@@ -93,11 +93,11 @@ sub disco_show {
     my ($self, %options) = @_;
 
     $self->manage_selection(%options);
-    foreach (@{$self->{metrics}}) {
+    foreach ( @{$self->{metrics}}) {
         $self->{output}->add_disco_entry(
-            namespace => $_->{Namespace},
-            metric => $_->{MetricName},
-            dimensions => $self->get_dimensions_str(dimensions => $_->{Dimensions}),
+            namespace => $_->{namespace},
+            metric => $_->{metric_name},
+            dimensions => $self->get_dimensions_str(dimensions => $_->{dimensions}),
         );
     }
 }

@@ -146,7 +146,7 @@ sub get_user_token {
         eval {
           $encoded = encode_json($json_request);
         };
-        $self->settings();
+        $self->http_settings();
 
         my $content = $self->{http}->request(method => 'POST', query_form_post => $encoded,
                                              full_url => $self->{iam_endpoint} . '/v3/auth/tokens',
@@ -183,15 +183,22 @@ sub get_user_token {
 sub get_access_secret_token{
  my ($self, %options) = @_;
 
-    my $has_cache_file = $options{statefile}->read(statefile => 'flexible_engine_api_' . md5_hex($self->{domain_id}) . '_' . md5_hex($self->{project_id}). '_' . md5_hex($self->{username}));
+    my $has_cache_file = $options{statefile}->read(statefile => 'flexible_engine_api_assk_' . md5_hex($self->{domain_id}) . '_' . md5_hex($self->{project_id}). '_' . md5_hex($self->{username}));
     my $expires_on = $options{statefile}->get(name => 'expires_on');
-    my $user_token = $options{statefile}->get(name => 'user_token');
+    my $access_key = $options{statefile}->get(name => 'access_key');
+    my $secret_key = $options{statefile}->get(name => 'secret_key');
+    if (!defined($self->{user_token})) {
+
+        $self->{user_token} = $self->get_user_token(statefile => $self->{cache});
+
+    }    if ($has_cache_file == 0 || !defined($access_key) || !defined($secret_key) ||(($expires_on - time()) < 10)) {
+
 
        $self->{http}->add_header(key => 'Content-Type', value => 'application/json;charset=utf8');
 
         my $json_request = { auth=>{identity=>{methods=>["token"],
                              token=>{
-                                 id=>$user_token,
+                                 id=>$self->{user_token} ,
                                  duration =>86400}
                                  }
                                
@@ -201,6 +208,8 @@ sub get_access_secret_token{
         eval {
           $encoded = encode_json($json_request);
         };
+        $self->http_settings();
+        $self->{http}->add_header(key => 'Content-Type', value => 'application/json;charset=utf8');
         my $content = $self->{http}->request(method => 'POST', query_form_post => $encoded,
                                              full_url => $self->{iam_endpoint} . '/v3.0/OS-CREDENTIAL/securitytokens',
                                              hostname => '');
@@ -222,6 +231,14 @@ sub get_access_secret_token{
             $self->{output}->output_add(long_msg => "Unable to Retrieve AS/SK");
             $self->{output}->option_exit();
          }
+        $access_key = $decoded->{credential}->{access};
+        $secret_key = $decoded->{credential}->{secret};
+
+        my $datas = { last_timestamp => time(),access_key=> $access_key , secret_key=>$secret_key,expires_on => int(str2time($decoded->{credential}->{expires_at})) };
+        $options{statefile}->write(data => $datas);
+    }   
+
+    return {access_key=>$access_key,secret_key=>$secret_key}
 
 }
 
@@ -239,7 +256,7 @@ sub build_options_for_httplib {
     $self->{option_results}->{ssl_opt} = $self->{ssl_opt};
 }
 
-sub settings {
+sub http_settings {
     my ($self, %options) = @_;
 
     $self->build_options_for_httplib();
@@ -260,7 +277,7 @@ sub request_api {
         $self->{user_token} = $self->get_user_token(statefile => $self->{cache});
 
     }
-    $self->settings();
+    $self->http_settings();
     my $content = $self->{http}->request(%options);
 
     my $decoded;
@@ -280,6 +297,8 @@ sub request_api {
 
     return $decoded;
 }
+
+
 sub internal_api_list_servers {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
@@ -293,6 +312,8 @@ sub internal_api_detail_server {
     my $server_detail = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2/'.$self->{project_id}.'/servers/'.$options{server_id},hostname => '');
     return $server_detail->{server};
 }
+
+
 
 
 sub api_list_servers {
@@ -330,51 +351,65 @@ sub api_list_full_servers {
 sub api_list_vpc {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://vpc.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $vpcs_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/vpcs',hostname => '');
-    return $vpcs_list;
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/vpcs',hostname => '');
+    return $list;
 }
 
 
 sub api_list_rds {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://rds.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $rds_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/vpcs',hostname => '');
-    return $rds_list;
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/vpcs',hostname => '');
+    return $list;
 }
 
 sub api_list_css {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://css.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $css_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1.0/'.$self->{project_id}.'/clusters',hostname => '');
-    return $css_list;
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1.0/'.$self->{project_id}.'/clusters',hostname => '');
+    return $list;
 }
 
 sub api_list_evs {
     my ($self, %options) = @_;
-    $self->{ecs_endpoint} = 'https://evs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $evs_list = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v2/'.$self->{project_id}.'/os-vendor-volumes/detail',hostname => '');
-    return $evs_list;
+    $self->{endpoint} = 'https://evs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2/'.$self->{project_id}.'/os-vendor-volumes/detail',hostname => '');
+    return $list;
 }
 
 sub api_list_nat {
     my ($self, %options) = @_;
-    $self->{ecs_endpoint} = 'https://nat.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $nat_list = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v2.0/nat_gateways',hostname => '');
-    return $nat_list;
+    $self->{endpoint} = 'https://nat.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2.0/nat_gateways',hostname => '');
+    return $list;
 }
 
 sub api_list_elb {
     my ($self, %options) = @_;
-    $self->{ecs_endpoint} = 'https://elb    .'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $elb_list = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v2.0/lbaas/loadbalancers',hostname => '');
-    return $elb_list;
+    $self->{endpoint} = 'https://elb.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2.0/lbaas/loadbalancers',hostname => '');
+    return $list;
 }
 
 sub api_list_clb {
     my ($self, %options) = @_;
-    $self->{ecs_endpoint} = 'https://elb    .'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $clb_list = $self->request_api(method => 'GET', full_url =>$self->{ecs_endpoint}.'/v1.0/'.$self->{project_id}.'/elbaas/loadbalancers',hostname => '');
-    return $clb_list;
+    $self->{endpoint} = 'https://elb.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1.0/'.$self->{project_id}.'/elbaas/loadbalancers',hostname => '');
+    return $list;
+}
+
+sub api_list_dcs{
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://dcs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1.0/'.$self->{project_id}.'/instances',hostname => '');
+    return $list;
+}
+
+sub api_list_eip{
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://vpc.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/publicips',hostname => '');
+    return $list;
 }
 
 sub api_get_servers_status {
@@ -484,8 +519,23 @@ sub api_discovery {
     if ($options{service} eq 'ecs'){
         $api_result = $self->api_list_full_servers(%options)
     }
-     if ($options{service} eq 'vpc'){
+    if ($options{service} eq 'vpc'){
         $api_result = $self->api_list_vpc(%options)
+    }
+    if ($options{service} eq 'nat'){
+        $api_result = $self->api_list_nat(%options)
+    }
+    if ($options{service} eq 'elb'){
+        $api_result = $self->api_list_elb(%options)
+    }
+    if ($options{service} eq 'clb'){
+        $api_result = $self->api_list_clb(%options)
+    }
+    if ($options{service} eq 'dcs'){
+        $api_result = $self->api_list_dcs(%options)
+    }
+    if ($options{service} eq 'eip'){
+        $api_result = $self->api_list_eip(%options)
     }
     return $api_result;
 }
