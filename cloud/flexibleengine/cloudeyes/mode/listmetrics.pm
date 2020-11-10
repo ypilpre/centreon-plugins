@@ -59,7 +59,8 @@ sub get_dimensions_str {
     my $dimensions = '';
     my $append = '';
     foreach (@{$options{dimensions}}) {
-        $dimensions .= $append . "$_->{name},$_->{value}";
+        $dimensions .= $append . "name=$_->{name},value=$_->{value}";
+
         $append = ',';
     }
 
