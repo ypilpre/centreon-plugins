@@ -71,7 +71,7 @@ sub run {
 
     $self->manage_selection(%options);
     foreach ( @{$self->{metrics}}) {
-        $self->{output}->output_add(long_msg => sprintf("[Namespace = %s][Dimensions = %s][Metric = %s]",
+        $self->{output}->output_add(long_msg => sprintf("[Namespace = %s][Dimension = %s][Metric = %s]",
             $_->{namespace}, $self->get_dimensions_str(dimensions => $_->{dimensions}), $_->{metric_name}));
     }
 
@@ -86,7 +86,7 @@ sub run {
 sub disco_format {
     my ($self, %options) = @_;
 
-    $self->{output}->add_disco_format(elements => ['namespace', 'metric', 'dimensions']);
+    $self->{output}->add_disco_format(elements => ['namespace', 'metric', 'dimension']);
 }
 
 sub disco_show {

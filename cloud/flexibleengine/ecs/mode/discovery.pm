@@ -57,7 +57,7 @@ sub run {
             next if (!defined($server->{id}));            ;
             my %ecs;
             $ecs{type} = "ecs";
-            $ecs{id} = $server->{id};
+            $ecs{instance_id} = $server->{id};
             $ecs{name} = $server->{name};
             $ecs{status} = $server->{status};
             $ecs{state} = $server->{'OS-EXT-STS:vm_state'};

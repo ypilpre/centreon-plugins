@@ -412,6 +412,15 @@ sub api_list_eip{
     return $list;
 }
 
+sub api_list_sfs{
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://sfs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2/'.$self->{project_id}.'/shares/detail',hostname => '');
+    return $list;
+}
+
+
+
 sub api_get_servers_status {
   my ($self, %options) = @_;
 
@@ -536,6 +545,12 @@ sub api_discovery {
     }
     if ($options{service} eq 'eip'){
         $api_result = $self->api_list_eip(%options)
+    }
+    if ($options{service} eq 'sfs'){
+        $api_result = $self->api_list_sfs(%options)
+    }
+    if ($options{service} eq 'evs'){
+        $api_result = $self->api_list_evs(%options)
     }
     return $api_result;
 }

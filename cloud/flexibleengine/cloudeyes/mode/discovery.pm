@@ -45,6 +45,10 @@ sub new {
         NAT => $self->can('discover_nat'),
         DCS => $self->can('discover_dcs'),
         EIP => $self->can('discover_eip'),
+        SFS => $self->can('discover_sfs'),
+        EVS => $self->can('discover_evs'),
+
+
 
     };
     
@@ -91,7 +95,7 @@ sub discover_ecs     {
             next if (!defined($server->{id}));            ;
             my %ecs;
             $ecs{type} = "ecs";
-            $ecs{id} = $server->{id};
+            $ecs{instance_id} = $server->{id};
             $ecs{name} = $server->{name};
             $ecs{status} = $server->{status};
             $ecs{state} = $server->{'OS-EXT-STS:vm_state'};
@@ -184,7 +188,8 @@ sub discover_eip {
         $eip{type} = "eip";
         $eip{public_ip_address} = $elastic_ip->{public_ip_address};
         $eip{private_ip_address} = $elastic_ip->{private_ip_address};
-        $eip{id} = $elastic_ip->{id};
+        $eip{bandwidth_id} = $elastic_ip->{bandwidth_id};
+        $eip{publicip_id} = $elastic_ip->{id};
         $eip{status} = $elastic_ip->{status};
         $eip{bandwidth_size} = $elastic_ip->{bandwidth_size};
         $eip{bandwidth_share_type} = $elastic_ip->{bandwidth_share_type};
@@ -213,6 +218,29 @@ sub discover_dcs {
         $dcs{spec_code} = $distributed_cache->{spec_code};
         $dcs{status} = $distributed_cache->{status};
         push @disco_data, \%dcs;
+    }
+    return @disco_data;
+}
+
+sub discover_sfs {
+    my (%options) = @_;
+
+    my @disco_data;
+
+    my $scalable_file_systems = $options{custom}->discovery(region => $options{region},
+        service => 'sfs');
+    foreach my $scalable_file_system (@{$scalable_file_systems->{shares}}) {
+        next if (!defined($scalable_file_system->{id}));
+        my %sfs;
+        $sfs{type} = "sfs";
+        $sfs{name} = $scalable_file_system->{name};
+        $sfs{share_id} = $scalable_file_system->{id};
+        $sfs{status} = $scalable_file_system->{status};
+        $sfs{size} = $scalable_file_system->{size};
+        $sfs{share_proto} = $scalable_file_system->{share_proto};
+        $sfs{availability_zone} = $scalable_file_system->{availability_zone};
+        $sfs{status} = $scalable_file_system->{status};
+        push @disco_data, \%sfs;
     }
     return @disco_data;
 }
@@ -247,110 +275,32 @@ sub discover_nat {
     return @disco_data;
 }
 
-sub discover_vpn {
+
+sub discover_evs {
     my (%options) = @_;
 
     my @disco_data;
 
-    my $vpns = $options{custom}->discovery(region => $options{region},
-        service => 'ec2', command => 'describe-vpn-connections');
-    foreach my $connection (@{$vpns->{VpnConnections}}) {
-        next if (!defined($connection->{VpnConnectionId}));
-        my %vpn;
-        $vpn{type} = "vpn";
-        $vpn{id} = $connection->{VpnConnectionId};
-        $vpn{connection_type} = $connection->{Type};
-        $vpn{state} = $connection->{State};
-        $vpn{category} = $connection->{Category};
-        foreach my $tag (@{$connection->{Tags}}) {
-            if ($tag->{Key} eq "Name" && defined($tag->{Value})) {
-                $vpn{name} = $tag->{Value};
-            }
-            push @{$vpn{tags}}, { key => $tag->{Key}, value => $tag->{Value} };
-        }
-        push @disco_data, \%vpn;
-    }
-    return @disco_data;
-}
-
-sub discover_css {
-    my (%options) = @_;
-
-    my @disco_data;
-
-    my $streams = $options{custom}->discovery(region => $options{region},
-        service => 'css');
+    my $volume_services = $options{custom}->discovery(region => $options{region},
+        service => 'evs');
     
-    foreach my $stream (@{$streams->{StreamNames}}) {
-        my %stream;
-        $stream{type} = "kinesis_stream";
-        $stream{name} = $stream;
-        push @disco_data, \%stream;
+    foreach my $volume_service (@{$volume_services->{volumes}}) {
+        my %evs;
+        $evs{type} = "evs";
+        $evs{disk_name} = $volume_service->{id};
+        $evs{name} = $volume_service->{name};
+        $evs{status} = $volume_service->{status};
+        $evs{size} = $volume_service->{size};
+        $evs{volume_type} = $volume_service->{volume_type};
+        $evs{encrypted} = $volume_service->{encrypted};
+        $evs{availability_zone} = $volume_service->{availability_zone};
+        $evs{replication_status} = $volume_service->{replication_status};
+        push @disco_data, \%evs;
     }
 
     return @disco_data;
 }
 
-sub discover_obs_bucket {
-    my (%options) = @_;
-
-    my @disco_data;
-
-    my $buckets = $options{custom}->discovery(region => $options{region},
-        service => 'obs');
-    
-    foreach my $bucket (@{$buckets->{Buckets}}) {
-        my %bucket;
-        $bucket{type} = "s3_bucket";
-        $bucket{name} = $bucket->{Name};
-        $bucket{creation_date} = $bucket->{CreationDate};
-        push @disco_data, \%bucket;
-    }
-
-    return @disco_data;
-}
-
-sub discover_dynamodb_table {
-    my (%options) = @_;
-
-    my @disco_data;
-
-    my $tables = $options{custom}->discovery(region => $options{region},
-        service => 'dynamodb', command => 'list-tables');
-    
-    foreach my $table (@{$tables->{TableNames}}) {
-        my %table;
-        $table{type} = "dynamodb_table";
-        $table{name} = $table;
-        push @disco_data, \%table;
-    }
-
-    return @disco_data;
-}
-
-sub discover_api {
-    my (%options) = @_;
-
-    my @disco_data;
-
-    my $apis = $options{custom}->discovery(region => $options{region},
-        service => 'apigateway', command => 'get-rest-apis');
-
-    foreach my $api (@{$apis->{items}}) {
-        my %api;
-        $api{id} = $api->{id};
-        $api{name} = $api->{name};
-        $api{description} = $api->{description};
-        $api{version} = $api->{version};
-        foreach my $type (@{$api->{endpointConfiguration}->{types}}) {
-            push @{$api{types}}, $type;
-        }
-
-        push @disco_data, \%api;
-    }
-
-    return @disco_data;
-}
 
 sub run {
     my ($self, %options) = @_;

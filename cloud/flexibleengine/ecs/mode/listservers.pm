@@ -78,7 +78,7 @@ sub disco_show {
     $self->manage_selection(%options);
     foreach  (@{$self->{servers}}) {
         $self->{output}->add_disco_entry(
-            id => $_->{Id},
+            instance_id => $_->{Id},
             name => $_->{Name},
             availabilityzone => $_->{AvailabilityZone},
             status => $_->{Status}

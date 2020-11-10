@@ -149,7 +149,6 @@ sub manage_selection {
     foreach my $label (keys %{$metric_results}) {
         foreach my $stat (('min', 'max', 'average', 'sum','variance')) {
             next if (!defined($metric_results->{$label}->{$stat}));
-            
             $self->{metrics}->{$self->{option_results}->{dimension} . '_' . $label . '_' . $stat} = {
                 display => $self->{option_results}->{dimension} . '_' . $label . '_' . $stat,
                 value => $metric_results->{$label}->{$stat},

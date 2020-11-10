@@ -34,6 +34,8 @@ sub new {
         'list-servers'    => 'cloud::flexibleengine::ecs::mode::listservers',
         'servers-status'    => 'cloud::flexibleengine::ecs::mode::serversstatus',
         'discovery'    => 'cloud::flexibleengine::ecs::mode::discovery',
+        'cpu'    => 'cloud::flexibleengine::ecs::mode::cpu',
+
 
 
     );
