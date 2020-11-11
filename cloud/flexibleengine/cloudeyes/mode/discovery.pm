@@ -47,6 +47,8 @@ sub new {
         EIP => $self->can('discover_eip'),
         SFS => $self->can('discover_sfs'),
         EVS => $self->can('discover_evs'),
+        CCE => $self->can('discover_cce'),
+
 
 
 
@@ -302,6 +304,31 @@ sub discover_evs {
     return @disco_data;
 }
 
+sub discover_cce {
+    my (%options) = @_;
+
+    my @disco_data;
+
+    my $cce_clusters = $options{custom}->discovery(region => $options{region},
+        service => 'cce');
+
+    foreach my $cce_cluster (@{$cce_clusters->{items}}) {
+        my %cce;
+        $cce{type} = "cce";
+        $cce{id} = $cce_cluster->{metadata}->{uid};
+        $cce{name} = $cce_cluster->{metadata}->{name};
+        $cce{status} = $cce_cluster->{status}->{phase};
+        $cce{flavor} = $cce_cluster->{spec}->{flavor};
+        $cce{type} = $cce_cluster->{spec}->{type};
+        $cce{availability_zone} = $cce_cluster->{spec}->{az};
+        $cce{version} = $cce_cluster->{spec}->{version};
+        $cce{vpc_id} = $cce_cluster->{spec}->{hostNetwork}->{vpc};
+        push @disco_data, \%cce;
+    }
+
+    return @disco_data;
+}
+
 
 sub run {
     my ($self, %options) = @_;
@@ -352,7 +379,7 @@ Resources discovery.
 
 Choose the service from which discover
 resources (Can be: 'VPC','ECS','RDS',
-'ELB','CLB,'NAT','VPN','RDS') (Mandatory).
+'ELB','CLB,'NAT','VPN','RDS','CCE') (Mandatory).
 
 =item B<--prettify>
 

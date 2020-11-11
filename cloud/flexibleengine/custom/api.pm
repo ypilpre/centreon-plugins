@@ -420,6 +420,13 @@ sub api_list_sfs{
     return $list;
 }
 
+sub api_list_cce{
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://cce.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/api/v3/projects/'.$self->{project_id}.'/clusters',hostname => '');
+    return $list;
+}
+
 
 
 
@@ -566,6 +573,9 @@ sub api_discovery {
     }
     if ($options{service} eq 'rds'){
         $api_result = $self->api_list_rds(%options)
+    }
+    if ($options{service} eq 'cce'){
+        $api_result = $self->api_list_cce(%options)
     }
     return $api_result;
 }
