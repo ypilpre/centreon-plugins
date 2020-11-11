@@ -187,7 +187,7 @@ __END__
 Check ECS servers status.
 
 Example: 
-perl centreon_plugins.pl --plugin=cloud::flexibleengine::ecs::plugin --mode=server-status --region='eu-west-0'
+perl centreon_plugins.pl --plugin=cloud::flexibleengine::ecs::plugin --mode=status --region='eu-west-0'
 --filter-serverid='.*' --filter-counters='^active$' --critical-running='10' --verbose
 
 See 'https://docs.prod-cloud-ocb.orange-business.com/en-us/api/ecs/en-us_topic_0178420672.html' for more informations.
