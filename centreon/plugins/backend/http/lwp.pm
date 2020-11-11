@@ -208,6 +208,10 @@ sub request {
             $req->content_type('application/x-www-form-urlencoded');
             $req->content($uri_post->query);
         }
+    } else {
+         if (defined($content_type_forced)) {
+            $req->content_type($content_type_forced);
+         }
     }
 
     if (defined($request_options->{credentials}) && defined($request_options->{ntlmv2})) {
