@@ -151,8 +151,7 @@ sub new {
     $options{options}->add_options(arguments => {
         "instance-id:s@"	        => { name => 'name' },
         "filter-metric:s"   => { name => 'filter_metric' },
-        'filter:s'    => { name => 'filter' },
-        "per-sec"         => { name => 'per_sec' },
+        "filter:s"    => { name => 'filter' },
     });
 
     return $self;
