@@ -76,7 +76,6 @@ sub custom_metric_calc {
     
     $self->{result_values}->{timeframe} = $options{new_datas}->{$self->{instance} . '_timeframe'};
     $self->{result_values}->{value} = $options{new_datas}->{$self->{instance} . '_' . $options{extra_options}->{metric}};
-    $self->{result_values}->{value_per_sec} = $self->{result_values}->{value} / $self->{result_values}->{timeframe};
     $self->{result_values}->{metric} = $options{extra_options}->{metric};
     return 0;
 }
