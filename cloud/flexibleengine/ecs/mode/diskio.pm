@@ -41,13 +41,13 @@ my %metrics_mapping = (
     },
     'disk_write_requests_rate' => {
         'output' => 'Disk Write Ops',
-        'label' => 'disk-write-bytes-rate',
+        'label' => 'disk-write-ops',
         'nlabel' => 'ecs.disk.ops.write.persecond',
         'unit' => 'ops',
     },
     'disk_read_requests_rate' => {
         'output' => 'Disk Read Ops',
-        'label' => 'disk-read-requests-rate',
+        'label' => 'disk-read-ops',
         'nlabel' => 'ecs.disk.ops.read.persecond',
         'unit' => 'ops',
     },
