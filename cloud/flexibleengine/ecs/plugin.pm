@@ -31,14 +31,12 @@ sub new {
 
     $self->{version} = '1.0';
     %{$self->{modes}} = (
-        'list-servers'    => 'cloud::flexibleengine::ecs::mode::listservers',
-        'servers-status'    => 'cloud::flexibleengine::ecs::mode::serversstatus',
-        'discovery'    => 'cloud::flexibleengine::ecs::mode::discovery',
-        'cpu'    => 'cloud::flexibleengine::ecs::mode::cpu',
-
-
-
-    );
+        'list-servers'   => 'cloud::flexibleengine::ecs::mode::listservers',
+        'servers-status' => 'cloud::flexibleengine::ecs::mode::serversstatus',
+        'discovery'      => 'cloud::flexibleengine::ecs::mode::discovery',
+        'cpu'            => 'cloud::flexibleengine::ecs::mode::cpu',
+        'diskio'         => 'cloud::flexibleengine::ecs::mode::diskio',
+            );
     $self->{custom_modes}{api} = 'cloud::flexibleengine::custom::api';
     return $self;
 }

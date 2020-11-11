@@ -24,7 +24,6 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-use Data::Dumper;
 
 sub custom_metric_perfdata {
     my ($self, %options) = @_;
@@ -94,12 +93,9 @@ sub new {
 
     $options{options}->add_options(arguments => {
         'namespace:s'  => { name => 'namespace' },
-        'dimension:s' => { name => 'dimension' },
-        'metric:s'    => { name => 'metric' },
+        'dimension:s%' => { name => 'dimension' },
+        'metric:s@'    => { name => 'metric' },
         'filter:s'    => { name => 'filter' },
-        'period:s'    => { name => 'period' },
-        'frame:s'    => { name => 'frame' },
-
     });
 
     return $self;
@@ -114,23 +110,49 @@ sub check_options {
         $self->{output}->option_exit();
     }
 
-    if (!defined($self->{option_results}->{metric})) {
-        $self->{output}->add_option_msg(short_msg => "Need to specify --metric option.");
-                $self->{output}->option_exit();
-
+    $self->{ces_metrics} = [];
+    if (defined($self->{option_results}->{metric})) {
+        $self->{ces_metrics} = [@{$self->{option_results}->{metric}}];
     }
-    if (!defined($self->{option_results}->{dimension})) {
+    if (scalar(@{$self->{ces_metrics}}) <= 0) {
+        $self->{output}->add_option_msg(short_msg => "Need to specify --metric option.");
+        $self->{output}->option_exit();
+    }
+
+    $self->{dimension_name} = '';
+    my $append = '';
+    $self->{ces_dimensions} = [];
+    if (defined($self->{option_results}->{dimension})) {
+        foreach (keys %{$self->{option_results}->{dimension}}) {
+            push @{$self->{ces_dimensions}}, { name => $_, value => $self->{option_results}->{dimension}->{$_} };
+            $self->{dimension_name} .= $append . $_ . '.' . $self->{option_results}->{dimension}->{$_};
+            $append = '-';
+        }
+    }
+    if ($self->{dimension_name} eq '') {
         $self->{output}->add_option_msg(short_msg => "Need to specify --dimension option.");
         $self->{output}->option_exit();
     }
 
     $self->{ces_period} = defined($self->{option_results}->{period}) ? $self->{option_results}->{period} : 1;
     $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 14400;
-  
 
-     if (!defined($self->{option_results}->{filter})) {
-        $self->{output}->add_option_msg(short_msg => "Need to specify --filter option.");
-        $self->{output}->option_exit();
+    $self->{ces_filter} = 'average';
+    if (defined($self->{option_results}->{filter})) {
+        $self->{ces_filter} =$self->{option_results}->{filter};
+    }
+
+    foreach my $metric_name ($self->{ces_metrics}) {
+            my $entry = { label => lc($metric_name) . '-' . $self->{ces_filter}, set => {
+                    key_values => [ { name => $metric_name . '_' . $self->{ces_filter} }, { name => 'display' } ],
+                    output_template => $metric_name . ' ' .$self->{ces_filter} . ' : %s',
+                    perfdatas => [
+                        { label => lc($metric_name) . '_' . $self->{ces_filter}, value => $metric_name . '_' . $self->{ces_filter} , template => '%s', 
+                          label_extra_instance => 1, instance_use => 'display' },
+                    ],
+                }
+            };
+            push @{$self->{maps_counters}->{dimensions}}, $entry;
     }
 }
 
@@ -139,18 +161,20 @@ sub manage_selection {
 
     my $metric_results = $options{custom}->api_cloudeyes_get_metric(
         namespace => $self->{option_results}->{namespace},
-        dimension => $self->{option_results}->{dimension},
-        metric => $self->{option_results}->{metric},
-        filter => $self->{option_results}->{filter},
-        period => $self->{ces_period},
+        dimensions => $self->{ces_dimensions},
+        metrics => $self->{ces_metrics},
+        filter => $self->{ces_filter},
         frame => $self->{ces_frame},
+        period => $self->{ces_period},
     );
+
     $self->{metrics} = {};
     foreach my $label (keys %{$metric_results}) {
-        foreach my $stat (('min', 'max', 'average', 'sum','variance')) {
+        foreach my $stat (('minimum', 'maximum', 'average', 'sum')) {
             next if (!defined($metric_results->{$label}->{$stat}));
-            $self->{metrics}->{$self->{option_results}->{dimension} . '_' . $label . '_' . $stat} = {
-                display => $self->{option_results}->{dimension} . '_' . $label . '_' . $stat,
+            
+            $self->{metrics}->{$self->{dimension_name} . '_' . $label . '_' . $stat} = {
+                display => $self->{dimension_name} . '_' . $label . '_' . $stat,
                 value => $metric_results->{$label}->{$stat},
                 perf_label => $label . '_' . $stat,
             };
@@ -159,6 +183,7 @@ sub manage_selection {
 }
 
 1;
+
 
 __END__
 

@@ -456,26 +456,31 @@ sub api_cloudeye_list_metrics {
 
 sub internal_api_cloudeyes_get_metric {
      my ($self, %options) = @_;
-    $self->{ces_endpoint} = 'https://ces.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $uri= $self->{ces_endpoint} .'/V1.0/'.$self->{project_id}.'/metric-data?';
-    if (defined($options{namespace})){
-    $uri = $uri."namespace=$options{namespace}";
+    $self->{ces_endpoint} = 'https://ces.'.$self->{region}.'.prod-cloud-ocb.orange-business.com'.'/V1.0/'.$self->{project_id}.'/batch-query-metric-data';
+    my $ces_query = {};
+    $ces_query->{from} = $options{start_time};
+    $ces_query->{to} = $options{end_time};
+    $ces_query->{period} = ''.$options{period};
+    $ces_query->{filter} = $options{filter};
+    $ces_query->{metrics} = [];
+    foreach my $metric (@{$options{metrics}}){
+        my $metric_detail = {};
+        $metric_detail->{metric_name} = $metric;
+        $metric_detail->{namespace} = $options{namespace};
+        $metric_detail->{dimensions} =[];
+        foreach my $dimension (@{$options{dimensions}}){
+            push @{$metric_detail->{dimensions}},{name=>$dimension->{name},value=>$dimension->{value}};
+        }
+         push @{$ces_query->{metrics}},$metric_detail;
     }
-    if (defined($options{metric})){
-    $uri = $uri."&metric_name=$options{metric}";
-    }
-    if (defined($options{dimension})){
-    $uri = $uri."&dim.0=$options{dimension}";
-    }
-    if (defined($options{end_time}) && defined($options{start_time})){
-    $uri = $uri."&from=$options{start_time}&to=$options{end_time}";
-    $uri = $uri."&period=$options{period}";
-    }
-    if (defined($options{filter})){
-    $uri = $uri."&filter=$options{filter}";
-    }
-    my $metrics = $self->request_api(method => 'GET', full_url =>$uri,hostname => '');
-    return $metrics;
+    my $encoded;
+        eval {
+          $encoded = encode_json($ces_query);
+        };
+    $self->http_settings();
+    my $metrics_result = $self->request_api(method => 'POST', query_form_post =>$encoded, full_url =>$self->{ces_endpoint},hostname => '');
+
+    return $metrics_result;
 }
 
 sub api_cloudeyes_get_metric {
@@ -485,40 +490,44 @@ sub api_cloudeyes_get_metric {
     my $start_time = (DateTime->now->subtract(seconds => $options{frame})->epoch())*1000;
     my $end_time = (DateTime->now->epoch())*1000;
 
-    my $raw_results = $self->internal_api_cloudeyes_get_metric(%options, metric_name => $options{metric},
-            start_time => $start_time, end_time => $end_time,period=>$options{period},filter=>$options{filter});
+    foreach my $metric_name (@{$options{metrics}}) {
 
-        $metric_results->{$raw_results->{metric_name}} = { points => 0 };
-        foreach my $point (@{$raw_results->{datapoints}}) {
-            if (defined($point->{average})) {
-                $metric_results->{$raw_results->{metric_name}}->{average} = 0 if (!defined($metric_results->{$raw_results->{metric_name}}->{average}));
-                $metric_results->{$raw_results->{metric_name}}->{average} += $point->{average};
-            }
-            if (defined($point->{min})) {
-                $metric_results->{$raw_results->{metric_name}}->{min} = $point->{min}
-                    if (!defined($metric_results->{$raw_results->{metric_name}}->{min}) || $point->{min} < $metric_results->{$raw_results->{metric_name}}->{min});
-            }
-            if (defined($point->{max})) {
-                $metric_results->{$raw_results->{metric_name}}->{max} = $point->{max}
-                    if (!defined($metric_results->{$raw_results->{metric_name}}->{max}) || $point->{max} > $metric_results->{$raw_results->{metric_name}}->{max});
-            }
+    my $raw_results = $self->internal_api_cloudeyes_get_metric(%options, metric_name => $metric_name,dimension=>$options{dimensions},
+            start_time => $start_time, end_time => $end_time,period=>$options{period},filter=>$options{filter});
+        
+        foreach my $metric (@{$raw_results->{metrics}}) {
+
+           $metric_results->{$metric->{metric_name}} = { points => 0 };
+           foreach my $point (@{$metric->{datapoints}}) {
+             if (defined($point->{average})) {
+                    $metric_results->{$metric->{metric_name}}->{average} = 0 if (!defined($metric_results->{$metric->{metric_name}}->{average}));
+                    $metric_results->{$metric->{metric_name}}->{average} += $point->{average};
+             }
+             if (defined($point->{min})) {
+                  $metric_results->{$metric->{metric_name}}->{min} = $point->{min}
+                     if (!defined($metric_results->{$metric->{metric_name}}->{min}) || $point->{min} < $metric_results->{$metric->{metric_name}}->{min});
+             }
+             if (defined($point->{max})) {
+                $metric_results->{$metric->{metric_name}}->{max} = $point->{max}
+                    if (!defined($metric_results->{$metric->{metric_name}}->{max}) || $point->{max} > $metric_results->{$metric->{metric_name}}->{max});
+             }
             if (defined($point->{sum})) {
-                $metric_results->{$raw_results->{metric_name}}->{sum} = 0 if (!defined($metric_results->{$raw_results->{metric_name}}->{sum}));
-                $metric_results->{$raw_results->{metric_name}}->{sum} += $point->{sum};
+                $metric_results->{$metric->{metric_name}}->{sum} = 0 if (!defined($metric_results->{$metric->{metric_name}}->{sum}));
+                $metric_results->{$metric->{metric_name}}->{sum} += $point->{sum};
             }
              if (defined($point->{variance})) {
-                $metric_results->{$raw_results->{metric_name}}->{variance} = 0 if (!defined($metric_results->{$raw_results->{metric_name}}->{variance}));
-                $metric_results->{$raw_results->{metric_name}}->{variance} += $point->{variance};
+                $metric_results->{$metric->{metric_name}}->{variance} = 0 if (!defined($metric_results->{$metric->{metric_name}}->{variance}));
+                $metric_results->{$metric->{metric_name}}->{variance} += $point->{variance};
             }
 
-            $metric_results->{$raw_results->{metric_name}}->{points}++;
+            $metric_results->{$metric->{metric_name}}->{points}++;
         }
 
-        if (defined($metric_results->{$raw_results->{metric_name}}->{average})) {
-            $metric_results->{$raw_results->{metric_name}}->{average} /= $metric_results->{$raw_results->{metric_name}}->{points};
+        if (defined($metric_results->{$metric->{metric_name}}->{average})) {
+            $metric_results->{$metric->{metric_name}}->{average} /= $metric_results->{$metric->{metric_name}}->{points};
         }
-    
-    
+    }
+    }
     return $metric_results;
 }
 
