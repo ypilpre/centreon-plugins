@@ -217,6 +217,10 @@ sub request {
             error_msg => "Cannot load module 'Authen::NTLM'."
         );
         Authen::NTLM::ntlmv2(1);
+    } else {
+         if (defined($content_type_forced)) {
+            $req->content_type($content_type_forced);
+         }
     }
 
     if (defined($request_options->{credentials}) && defined($request_options->{basic})) {

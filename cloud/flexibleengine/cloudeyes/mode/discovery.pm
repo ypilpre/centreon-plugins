@@ -114,18 +114,19 @@ sub discover_rds {
     my @disco_data;
 
     my $db_instances = $options{custom}->discovery(region => $options{region},
-        service => 'rds', command => 'describe-db-instances');
-    foreach my $db_instance (@{$db_instances->{DBInstances}}) {
-        next if (!defined($db_instance->{DbiResourceId}));
+        service => 'rds');
+    foreach my $db_instance (@{$db_instances->{instances}}) {
+        next if (!defined($db_instance->{id}));
         my %rds;
         $rds{type} = "rds";
-        $rds{id} = $db_instance->{DbiResourceId};
-        $rds{name} = $db_instance->{DBInstanceIdentifier};
-        $rds{status} = $db_instance->{DBInstanceStatus};
-        $rds{storage_type} = $db_instance->{StorageType};
-        $rds{instance_class} = $db_instance->{DBInstanceClass};
-        $rds{availability_zone} = $db_instance->{AvailabilityZone};
-        $rds{vpc_id} = $db_instance->{DBSubnetGroup}->{VpcId};
+        $rds{id} = $db_instance->{id};
+        $rds{name} = $db_instance->{name};
+        $rds{status} = $db_instance->{status};
+        $rds{type} = $db_instance->{type};
+        $rds{flavor} = $db_instance->{flavor_ref};
+        $rds{engine} = $db_instance->{datastore}->{type};
+        $rds{engine_version} = $db_instance->{datastore}->{version};
+        $rds{vpc_id} = $db_instance->{vpc_id};
         push @disco_data, \%rds;
     }
     return @disco_data;
@@ -350,8 +351,8 @@ Resources discovery.
 =item B<--service>
 
 Choose the service from which discover
-resources (Can be: 'VPC', 'ECS', 'RDS',
-'ELB', 'CLB,,'NAT','VPN') (Mandatory).
+resources (Can be: 'VPC','ECS','RDS',
+'ELB','CLB,'NAT','VPN','RDS') (Mandatory).
 
 =item B<--prettify>
 

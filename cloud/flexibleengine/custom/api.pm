@@ -29,7 +29,7 @@ use JSON::XS;
 use URI::Encode;
 use Digest::MD5 qw(md5_hex);
 use Date::Parse qw(str2time);
-use Data::Dumper;
+use Data::Dumper::Simple;
 
 
 sub new {
@@ -260,8 +260,8 @@ sub http_settings {
     my ($self, %options) = @_;
 
     $self->build_options_for_httplib();
+  $self->{http}->add_header(key => 'Content-Type', value => 'application/json');
     $self->{http}->add_header(key => 'Accept', value => 'application/json');
-    $self->{http}->add_header(key => 'Content-Type', value => 'application/json');
     if (defined($self->{user_token})) {
         $self->{http}->add_header(key => 'X-Auth-Token', value =>  $self->{user_token});
     }
@@ -278,6 +278,7 @@ sub request_api {
 
     }
     $self->http_settings();
+    
     my $content = $self->{http}->request(%options);
 
     my $decoded;
@@ -359,7 +360,7 @@ sub api_list_vpc {
 sub api_list_rds {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://rds.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/vpcs',hostname => '');
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v3/'.$self->{project_id}.'/instances',hostname => '');
     return $list;
 }
 
@@ -418,6 +419,8 @@ sub api_list_sfs{
     my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2/'.$self->{project_id}.'/shares/detail',hostname => '');
     return $list;
 }
+
+
 
 
 
@@ -560,6 +563,9 @@ sub api_discovery {
     }
     if ($options{service} eq 'evs'){
         $api_result = $self->api_list_evs(%options)
+    }
+    if ($options{service} eq 'rds'){
+        $api_result = $self->api_list_rds(%options)
     }
     return $api_result;
 }
