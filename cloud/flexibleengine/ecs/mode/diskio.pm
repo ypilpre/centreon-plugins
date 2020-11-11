@@ -24,7 +24,7 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-use Data::Dumper;
+use Data::Dumper::Simple;
 
 my %metrics_mapping = (
     'disk_read_bytes_rate' => {
@@ -173,7 +173,7 @@ sub check_options {
     }
 
     $self->{ces_period} = defined($self->{option_results}->{period}) ? $self->{option_results}->{period} : 1;
-    $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 14400;
+    $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 3600;
     
     $self->{ces_filter} = 'average';
     if (defined($self->{option_results}->{filter})) {
@@ -216,6 +216,7 @@ sub manage_selection {
             
         }
     }
+    print Dumper($self->{metrics});
     if (scalar(keys %{$self->{metrics}}) <= 0) {
         $self->{output}->add_option_msg(short_msg => 'No metrics. Check your options or use --zeroed option to set 0 on undefined values');
         $self->{output}->option_exit();
