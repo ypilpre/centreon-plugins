@@ -36,6 +36,8 @@ sub new {
         'discovery'      => 'cloud::flexibleengine::ecs::mode::discovery',
         'cpu'            => 'cloud::flexibleengine::ecs::mode::cpu',
         'diskio'         => 'cloud::flexibleengine::ecs::mode::diskio',
+        'network'         => 'cloud::flexibleengine::ecs::mode::network',
+
             );
     $self->{custom_modes}{api} = 'cloud::flexibleengine::custom::api';
     return $self;

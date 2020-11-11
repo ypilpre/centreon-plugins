@@ -135,7 +135,7 @@ sub check_options {
     }
 
     $self->{ces_period} = defined($self->{option_results}->{period}) ? $self->{option_results}->{period} : 1;
-    $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 14400;
+    $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 3600;
 
     $self->{ces_filter} = 'average';
     if (defined($self->{option_results}->{filter})) {
@@ -167,7 +167,6 @@ sub manage_selection {
         frame => $self->{ces_frame},
         period => $self->{ces_period},
     );
-
     $self->{metrics} = {};
     foreach my $label (keys %{$metric_results}) {
         foreach my $stat (('minimum', 'maximum', 'average', 'sum')) {
@@ -205,7 +204,7 @@ Set cloudeyes namespace (Required).
 =item B<--dimension>
 
 Set cloudeyes dimension (Required).
-Format : key,value
+Format : key=value
 
 =item B<--metric>
 
