@@ -84,7 +84,7 @@ sub custom_metric_threshold {
     my ($self, %options) = @_;
 
     my $exit = $self->{perfdata}->threshold_check(
-        value => defined($self->{instance_mode}->{option_results}->{per_sec}) ? $self->{result_values}->{value_per_sec} : $self->{result_values}->{value},
+        value => $self->{result_values}->{value},
         threshold => [ { label => 'critical-' . $metrics_mapping{$self->{result_values}->{metric}}->{label}, exit_litteral => 'critical' },
                        { label => 'warning-' . $metrics_mapping{$self->{result_values}->{metric}}->{label}, exit_litteral => 'warning' } ]);
     return $exit;
