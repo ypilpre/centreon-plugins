@@ -288,6 +288,7 @@ sub discover_evs {
         service => 'evs');
     
     foreach my $volume_service (@{$volume_services->{volumes}}) {
+        next if (!defined($volume_service->{id}));
         my %evs;
         $evs{type} = "evs";
         $evs{disk_name} = $volume_service->{id};
@@ -313,6 +314,7 @@ sub discover_cce {
         service => 'cce');
 
     foreach my $cce_cluster (@{$cce_clusters->{items}}) {
+        next if (!defined($cce_cluster->{metadata}->{uid}));
         my %cce;
         $cce{type} = "cce";
         $cce{id} = $cce_cluster->{metadata}->{uid};
