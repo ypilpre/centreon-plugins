@@ -48,6 +48,6 @@ sub new {
 
 =head1 PLUGIN DESCRIPTION
 
-Check Flexible Engine ECS Resources.
+Check Flexible Engine ECS (Elastic Compute Service) Resources.
 
 =cut
