@@ -47,6 +47,6 @@ sub new {
 
 =head1 PLUGIN DESCRIPTION
 
-Check Flexible Engine SFS Resources.
+Check Flexible Engine SFS(Scalable File Service) Resources.
 
 =cut

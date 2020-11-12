@@ -47,6 +47,6 @@ __END__
 
 =head1 PLUGIN DESCRIPTION
 
-Check Flexible CloudEyes.
+Check Flexible CloudEyes Metrics.
 
 =cut

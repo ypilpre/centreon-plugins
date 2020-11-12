@@ -45,6 +45,6 @@ sub new {
 
 =head1 PLUGIN DESCRIPTION
 
-Check Flexible Engine EVS Resources.
+Check Flexible Engine EVS (Elastic Volume Service) Resources.
 
 =cut
