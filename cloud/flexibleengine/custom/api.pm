@@ -364,6 +364,29 @@ sub api_list_rds {
     return $list;
 }
 
+sub api_list_rds_nodes {
+  my ($self, %options) = @_;
+
+    my $nodes = [];
+    my $list_rds = $self->api_list_rds();
+    foreach my $instance (@{$list_rds->{instances}}){
+        foreach  my $node (@{$instance->{nodes}}) {
+            push @{$nodes} , {
+                id => $node->{id},
+                status => $node->{status},
+                availability_zone =>  $node->{availability_zone},
+                role =>  $node->{role},
+                name => $node->{name},
+                instance => $instance->{name},
+            
+             };
+        }
+    }
+
+    return $nodes;
+}
+
+
 sub api_list_css {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://css.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';

@@ -125,9 +125,13 @@ sub discover_rds {
         $rds{name} = $db_instance->{name};
         $rds{status} = $db_instance->{status};
         $rds{type} = $db_instance->{type};
+        if ($db_instance->{type} eq 'Ha'){
+        $rds{ha_type} = $db_instance->{ha}->{replication_mode};
+        }
         $rds{flavor} = $db_instance->{flavor_ref};
         $rds{engine} = $db_instance->{datastore}->{type};
         $rds{engine_version} = $db_instance->{datastore}->{version};
+        $rds{storage_type}= $db_instance->{volume}->{type};
         $rds{vpc_id} = $db_instance->{vpc_id};
         push @disco_data, \%rds;
     }
