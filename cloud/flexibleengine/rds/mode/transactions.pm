@@ -30,7 +30,7 @@ my %metrics_mapping = (
         'std_metric' => 'transactions_sec',
         'output' => 'Transactions per second',
         'label' => 'TPS',
-        'nlabel' => 'rds.transaction..sec',
+        'nlabel' => 'rds.transaction.sec',
         'unit','transactions/s'
     }
 );

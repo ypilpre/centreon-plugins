@@ -43,7 +43,6 @@ sub new {
         'queries'         => 'cloud::flexibleengine::rds::mode::queries',
         'storage'         => 'cloud::flexibleengine::rds::mode::storage',
         'transactions'    => 'cloud::flexibleengine::rds::mode::transactions',
-        'volume'          => 'cloud::flexibleengine::rds::mode::volume',
     };
 
     $self->{custom_modes}{api} = 'cloud::flexibleengine::custom::api';
