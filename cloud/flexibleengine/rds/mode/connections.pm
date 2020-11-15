@@ -113,7 +113,7 @@ sub set_counters {
     ];
 
         $self->{maps_counters}->{statistics} = [{
-            label => 'connections',
+            label => 'connections',nlabel => 'rds.connections.count',
             set => {
                 key_values => [ { name => 'connections' }, { name => 'timeframe' }, { name => 'display' } ],
                 closure_custom_calc => $self->can('custom_metric_calc'),
@@ -156,6 +156,11 @@ sub check_options {
         if ($instance ne '') {
             push @{$self->{ces_instance}}, $instance;
         }
+    }
+
+    if (!defined($self->{option_results}->{engine}) || $self->{option_results}->{engine} eq '') {
+        $self->{output}->add_option_msg(short_msg => "Need to specify --engine option.");
+        $self->{output}->option_exit();
     }
 
     if (!defined($self->{option_results}->{type}) || $self->{option_results}->{type} eq '') {
