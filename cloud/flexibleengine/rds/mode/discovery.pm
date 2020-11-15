@@ -61,7 +61,7 @@ sub run {
         $rds{id} = $db_instance->{id};
         $rds{name} = $db_instance->{name};
         $rds{status} = $db_instance->{status};
-        $rds{type} = $db_instance->{type};
+        $rds{cluster_type} = $db_instance->{type};
         if ($db_instance->{type} eq 'Ha'){
         $rds{ha_type} = $db_instance->{ha}->{replication_mode};
         }
@@ -70,6 +70,7 @@ sub run {
         $rds{engine_version} = $db_instance->{datastore}->{version};
         $rds{storage_type}= $db_instance->{volume}->{type};
         $rds{vpc_id} = $db_instance->{vpc_id};
+        $rds{private_ip} = $db_instance->{private_ips}[0];
         push @disco_data, \%rds;
     }
 

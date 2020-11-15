@@ -31,56 +31,56 @@ my %metrics_mapping = (
         'output' => 'Queries per second',
         'label' => 'QPS',
         'nlabel' => 'rds.statements.sec',
-        'unit','queries/s'
+        'unit','q/s'
     },
     'rds028_comdml_del_count' => {
         'std_metric' => 'delete_state_sec',
         'output' => 'DELETE Statements per Second',
         'label' => 'state-del-sec',
         'nlabel' => 'rds.statement.delete.sec',
-        'unit','queries/s'
+        'unit','q/s'
     },
     'rds029_comdml_ins_count' => {
         'std_metric' => 'insert_state_sec',
         'output' => 'INSERT Statements per Second',
         'label' => 'state-ins-sec',
         'nlabel' => 'rds.statement.insert.sec',
-        'unit','queries/s'
+        'unit','q/s'
     },
     'rds030_comdml_ins_sel_count' => {
         'std_metric' => 'insert_select_state_sec',
         'output' => 'INSERT/SELECT Statements per Second',
         'label' => 'state-ins_sel-sec',
         'nlabel' => 'rds.statement.insert_select.sec',
-        'unit','queries/s'
+        'unit','q/s'
     },
     'rds031_comdml_rep_count' => {
         'std_metric' => 'replace_state_sec',
         'output' => 'REPLACE Statements per Second',
         'label' => 'state-ins_sel-sec',
         'nlabel' => 'rds.statement.replace.sec',
-        'unit','queries/s'
+        'unit','q/s'
     },
     'rds032_comdml_rep_sel_count' => {
         'std_metric' => 'replace_selection_state_sec',
         'output' => 'REPLACE_SELECTION Statements per Second',
         'label' => 'state-rep_sel-sec',
         'nlabel' => 'rds.statement.replace_selection.sec',
-        'unit','queries/s'
+        'unit','q/s'
     },
     'rds033_comdml_sel_count' => {
         'std_metric' => 'select_state_sec',
         'output' => 'SELECT Statements per Second',
         'label' => 'state-sel-sec',
         'nlabel' => 'rds.statement.select.sec',
-        'unit','queries/s'
+        'unit','q/s'
     },
     'rds034_comdml_upd_count' => {
         'std_metric' => 'update_state_sec',
         'output' => 'UPDATE Statements per Second',
         'label' => 'state-up-sec',
         'nlabel' => 'rds.statement.update.sec',
-        'unit','query/s'
+        'unit','q/s'
     },
 );
 
@@ -213,7 +213,12 @@ sub check_options {
         $self->{output}->option_exit();
     }
 
-        $self->{dimension_name} = 'rds_'.$self->{option_results}->{type}.'_id';
+    if ($self->{option_results}->{engine} ne lc 'mysql') {
+        $self->{output}->add_option_msg(short_msg => "MySQL Engine is only Supported.");
+        $self->{output}->option_exit();
+    }
+
+        $self->{dimension_name} = 'rds_'.lc $self->{option_results}->{type}.'_id';
 
 
 
@@ -234,11 +239,13 @@ sub check_options {
 
 }
 
-sub manage_selection {
+ sub manage_selection {
     my ($self, %options) = @_;
 
     my %metric_results;
     foreach my $instance (@{$self->{ces_instance}}) {
+                print Dumper($self->{dimension_name});
+
         $metric_results{$instance} = $options{custom}->api_cloudeyes_get_metric(
             namespace => 'SYS.RDS',
             dimensions => [ { name => $self->{dimension_name}, value => $instance } ],
@@ -247,19 +254,19 @@ sub manage_selection {
             frame => $self->{ces_frame},
             period => $self->{ces_period},
         );
+
         foreach my $metric (@{$self->{ces_metrics}}) {
                  my $statistic = $self->{ces_filter};
                 next if (!defined($metric_results{$instance}->{$metric}->{lc($statistic)}) &&
                     !defined($self->{option_results}->{zeroed}));
 
                 $self->{metrics}->{$instance}->{display} = $instance;
-                $self->{metrics}->{$instance}->{type} = $self->{option_results}->{type};
-                $self->{metrics}->{$instance}->{engine} = $self->{option_results}->{engine};
-                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{timeframe} = $self->{ces_frame};
                 $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{display} = $statistic;
+                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{timeframe} = $self->{ces_frame};
                 $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{$metric} = 
                     defined($metric_results{$instance}->{$metric}->{lc($statistic)}) ? 
                     $metric_results{$instance}->{$metric}->{lc($statistic)} : 0;
+            
         }
     }
     if (scalar(keys %{$self->{metrics}}) <= 0) {

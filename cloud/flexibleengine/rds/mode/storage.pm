@@ -24,7 +24,7 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-use Data::Dumper::Simple;
+
 my %metrics_mapping = (
     'rds039_disk_util' => {
         'std_metric' => 'storage_util',
@@ -125,22 +125,22 @@ sub check_options {
         $self->{output}->option_exit();
     }
 
-        if (lc $self->{option_results}->{engine} eq 'mysql'){
-        $self->{dimension_name} = 'rds_'.$self->{option_results}->{type}.'_id';
+        if (lc $self->{option_results}->{engine} eq lc'mysql'){
+        $self->{dimension_name} = 'rds_'.lc$self->{option_results}->{type}.'_id';
     }
 
-    if (lc $self->{option_results}->{engine} eq 'postgresql'){
-        $self->{dimension_name} = $self->{option_results}->{engine}.'_'.$self->{option_results}->{type}.'_id';
+    if (lc $self->{option_results}->{engine} eq lc'PostgreSQL'){
+        $self->{dimension_name} = 'postgresql_'.$self->{option_results}->{type}.'_id';
     }
 
-    if (lc $self->{option_results}->{engine} eq 'sqlserver'){
-        $self->{dimension_name} = 'rds_'.$self->{option_results}->{type}.'_'.$self->{option_results}->{engine}.'id';
+    if (lc $self->{option_results}->{engine} eq lc 'sqlserver'){
+        $self->{dimension_name} = 'rds_'.lc $self->{option_results}->{type}.'_'.$self->{option_results}->{engine}.'_id';
     }
 
 
 
     $self->{ces_period} = defined($self->{option_results}->{period}) ? $self->{option_results}->{period} : 1;
-    $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 14400;
+    $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 3600;
     
     $self->{ces_filter} = 'average';
     if (defined($self->{option_results}->{filter})) {
@@ -175,8 +175,8 @@ sub manage_selection {
                     !defined($self->{option_results}->{zeroed}));
 
                 $self->{metrics}->{$instance}->{display} = $instance;
-                $self->{metrics}->{$instance}->{type} = $self->{option_results}->{type};
-                $self->{metrics}->{$instance}->{engine} = $self->{option_results}->{engine};
+                $self->{metrics}->{$instance}->{type} = lc $self->{option_results}->{type};
+                $self->{metrics}->{$instance}->{engine} = lc $self->{option_results}->{engine};
                 $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{display} = $statistic;
                 $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{$metric} = 
                     defined($metric_results{$instance}->{$metric}->{lc($statistic)}) ? 

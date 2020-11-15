@@ -24,7 +24,7 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-use Data::Dumper::Simple;
+
 my %metrics_mapping = (
     'rds002_mem_util' => {
         'std_metric' => 'mem_util',
@@ -134,7 +134,7 @@ sub check_options {
     }
 
     if (lc $self->{option_results}->{engine} eq 'sqlserver'){
-        $self->{dimension_name} = 'rds_'.$self->{option_results}->{type}.'_'.$self->{option_results}->{engine}.'id';
+        $self->{dimension_name} = 'rds_'.$self->{option_results}->{type}.'_'.$self->{option_results}->{engine}.'_id';
     }
 
 

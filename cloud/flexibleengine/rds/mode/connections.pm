@@ -24,29 +24,16 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-use Data::Dumper::Simple;
-my %metrics_mapping = (
-    'rds007_conn_active_count' => {
-        'engine' => 'mysql',
-        'std_metric' => 'connections',
-        'output' => 'Current Active Connections',
-        'label' => 'Connections',
-        'nlabel' => 'rds.connections.count',
+
+my %engine_mapping = (
+    'mysql' => {
+        'metric' => 'rds007_conn_active_count',
     },
-    'rds042_database_connections' => {
-        'engine' => 'postgressql',
-        'std_metric' => 'connections',
-        'output' => 'Database Connections in Use',
-        'label' => 'Connections',
-        'nlabel' => 'rds.connections.count',
+    'postgresql' => {
+        'metric' => 'rds042_database_connections',
     },
-,
-    'rds054_db_connections_in_use' => {
-        'engine' => 'sqlserver',
-        'std_metric' => 'connections',
-        'output' => 'Database Connections in Use',
-        'label' => 'Connections',
-        'nlabel' => 'rds.connections.count',
+    'sqlserver' => {
+        'metric' => 'rds054_db_connections_in_use',
     },
 );
 
@@ -55,7 +42,7 @@ my %metrics_mapping = (
 sub prefix_metric_output {
     my ($self, %options) = @_;
     
-    return "RDS '".$options{instance_value}->{type}." ".$options{instance_value}->{engine}." ".$options{instance_value}->{display} . "' ";
+    return " RDS '" . $options{instance_value}->{display} . "' ";
 }
 
 sub prefix_statistics_output {
@@ -67,15 +54,15 @@ sub prefix_statistics_output {
 sub long_output {
     my ($self, %options) = @_;
 
-    return "Checking RDS '".$options{instance_value}->{type}." " . $options{instance_value}->{display} . "' ";
+    return "Checking RDS '" . $options{instance_value}->{display} . "' ";
 }
 
 sub custom_metric_calc {
     my ($self, %options) = @_;
     
     $self->{result_values}->{timeframe} = $options{new_datas}->{$self->{instance} . '_timeframe'};
-    $self->{result_values}->{value} = $options{new_datas}->{$self->{instance} . '_' . $options{extra_options}->{metric}};
-    $self->{result_values}->{metric} = $options{extra_options}->{metric};
+    $self->{result_values}->{value} = $options{new_datas}->{$self->{instance} . '_connections'};
+    $self->{result_values}->{metric} = 'connections';
     return 0;
 }
 
@@ -84,8 +71,8 @@ sub custom_metric_threshold {
 
     my $exit = $self->{perfdata}->threshold_check(
         value => $self->{result_values}->{value},
-        threshold => [ { label => 'critical-' . $metrics_mapping{$self->{result_values}->{metric}}->{label}, exit_litteral => 'critical' },
-                       { label => 'warning-' . $metrics_mapping{$self->{result_values}->{metric}}->{label}, exit_litteral => 'warning' } ]);
+        threshold => [ { label => 'critical-connections', exit_litteral => 'critical' },
+                       { label => 'warning-connections', exit_litteral => 'warning' } ]);
     return $exit;
 }
 
@@ -93,31 +80,31 @@ sub custom_metric_perfdata {
     my ($self, %options) = @_;
     $self->{output}->perfdata_add(
         instances => $self->{instance},
-        label => $metrics_mapping{$self->{result_values}->{metric}}->{label},
-        nlabel => $metrics_mapping{$self->{result_values}->{metric}}->{nlabel},
-        unit => $metrics_mapping{$self->{result_values}->{metric}}->{unit},
-        value => sprintf("%.2f", $self->{result_values}->{value}),
-        warning => $self->{perfdata}->get_perfdata_for_output(label => 'warning-' . $metrics_mapping{$self->{result_values}->{metric}}->{label}),
-        critical => $self->{perfdata}->get_perfdata_for_output(label => 'critical-' . $metrics_mapping{$self->{result_values}->{metric}}->{label}),
+        label => 'connections',
+        nlabel => 'rds.connections.count',
+        unit => '',
+        value => sprintf("%.d", $self->{result_values}->{value}),
+        warning => $self->{perfdata}->get_perfdata_for_output(label => 'warning-connections'),
+        critical => $self->{perfdata}->get_perfdata_for_output(label => 'critical-connections'),
     );
 }
 
 sub custom_metric_output {
     my ($self, %options) = @_;
     my $msg = "";
-        my ($value, $unit) = ($self->{result_values}->{value}, $metrics_mapping{$self->{result_values}->{metric}}->{unit});
-        $msg = sprintf("%s: %.2f %s", $metrics_mapping{$self->{result_values}->{metric}}->{output}, $value, $unit);
+
+        my ($value, $unit) = ($self->{result_values}->{value}, '');
+        $msg = sprintf("%s: %d %s", 'Database Connections in Use', $value, $unit);
     
     return $msg;
 }
-
 
 sub set_counters {
     my ($self, %options) = @_;
     
     $self->{maps_counters_type} = [
         { name => 'metrics', type => 3, cb_prefix_output => 'prefix_metric_output', cb_long_output => 'long_output',
-          message_multiple => 'All connections metrics are ok', indent_long_output => '    ',
+          message_multiple => 'All DB Connections metrics are ok', indent_long_output => '    ',
             group => [
                 { name => 'statistics', display_long => 1, cb_prefix_output => 'prefix_statistics_output',
                   message_multiple => 'All metrics are ok', type => 1, skipped_code => { -10 => 1 } },
@@ -125,21 +112,18 @@ sub set_counters {
         }
     ];
 
-    foreach my $metric (keys %metrics_mapping) {
-        my $entry = {
-            label => $metrics_mapping{$metric}->{label},
+        $self->{maps_counters}->{statistics} = [{
+            label => 'connections',
             set => {
-                key_values => [ { name => $metric }, { name => 'timeframe' }, { name => 'display' } ],
+                key_values => [ { name => 'connections' }, { name => 'timeframe' }, { name => 'display' } ],
                 closure_custom_calc => $self->can('custom_metric_calc'),
-                closure_custom_calc_extra_options => { metric => $metric},
                 closure_custom_output => $self->can('custom_metric_output'),
                 closure_custom_perfdata => $self->can('custom_metric_perfdata'),
                 closure_custom_threshold_check => $self->can('custom_metric_threshold'),
-
             }
-        };
-        push @{$self->{maps_counters}->{statistics}}, $entry;
-    }
+            }
+        ];
+       
 }
 
 sub new {
@@ -148,7 +132,7 @@ sub new {
     bless $self, $class;
     
     $options{options}->add_options(arguments => {
-        "instance-id:s@"	        => { name => 'name' },
+        "instance-id:s@"	        => { name => 'instance_id' },
         "engine:s"	        => { name => 'engine' },
         "type:s"	        => { name => 'type' },
         "filter-metric:s"   => { name => 'filter_metric' },
@@ -163,12 +147,12 @@ sub check_options {
     $self->SUPER::check_options(%options);
 
 
-    if (!defined($self->{option_results}->{name}) || $self->{option_results}->{name} eq '') {
+    if (!defined($self->{option_results}->{instance_id}) || $self->{option_results}->{instance_id} eq '') {
         $self->{output}->add_option_msg(short_msg => "Need to specify --instance-id option.");
         $self->{output}->option_exit();
     }
 
-    foreach my $instance (@{$self->{option_results}->{name}}) {
+    foreach my $instance (@{$self->{option_results}->{instance_id}}) {
         if ($instance ne '') {
             push @{$self->{ces_instance}}, $instance;
         }
@@ -179,25 +163,23 @@ sub check_options {
         $self->{output}->option_exit();
     }
 
-        $self->{dimension_name} = 'rds_'.$self->{option_results}->{type}.'_id';
+        $self->{dimension_name} = 'rds_'.lc $self->{option_results}->{type}.'_id';
 
 
 
     $self->{ces_period} = defined($self->{option_results}->{period}) ? $self->{option_results}->{period} : 1;
-    $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 14400;
+    $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 3600;
     
     $self->{ces_filter} = 'average';
     if (defined($self->{option_results}->{filter})) {
         $self->{ces_filter} =$self->{option_results}->{filter};
     }
 
-    foreach my $metric (keys %metrics_mapping) {
-        next if (defined($self->{option_results}->{filter_metric}) && $self->{option_results}->{filter_metric} ne ''
-            && $metrics_mapping{$metric}->{std_metric} !~ /$self->{option_results}->{filter_metric}/ &&
-         $metrics_mapping{$metric}->{engine} ne $self->{option_results}->{engine} );
-
-        push @{$self->{ces_metrics}}, $metric;
+        foreach my $engine (keys %engine_mapping) {
+        next if ($engine ne $self->{option_results}->{engine} );
+        push @{$self->{ces_metrics}}, $engine_mapping{$engine}->{metric};
     }
+
 
 }
 
@@ -220,13 +202,12 @@ sub manage_selection {
                     !defined($self->{option_results}->{zeroed}));
 
                 $self->{metrics}->{$instance}->{display} = $instance;
-                $self->{metrics}->{$instance}->{type} = $self->{option_results}->{type};
-                $self->{metrics}->{$instance}->{engine} = $self->{option_results}->{engine};
-                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{timeframe} = $self->{ces_frame};
                 $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{display} = $statistic;
-                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{$metric} = 
+                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{timeframe} = $self->{ces_frame};
+                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{'connections'} = 
                     defined($metric_results{$instance}->{$metric}->{lc($statistic)}) ? 
                     $metric_results{$instance}->{$metric}->{lc($statistic)} : 0;
+            
         }
     }
     if (scalar(keys %{$self->{metrics}}) <= 0) {
