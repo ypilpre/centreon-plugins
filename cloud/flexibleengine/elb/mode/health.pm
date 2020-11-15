@@ -44,7 +44,7 @@ my %metrics_mapping = (
 sub prefix_metric_output {
     my ($self, %options) = @_;
     
-    return "elb '" . $options{instance_value}->{display} . "' ";
+    return "ELB '" . $options{instance_value}->{display} . "' ";
 }
 
 sub prefix_statistics_output {
@@ -59,38 +59,6 @@ sub long_output {
     return "Checking ELB '" . $options{instance_value}->{display} . "' ";
 }
 
-sub custom_metric_calc {
-    my ($self, %options) = @_;
-    
-    $self->{result_values}->{timeframe} = $options{new_datas}->{$self->{instance} . '_timeframe'};
-    $self->{result_values}->{value} = $options{new_datas}->{$self->{instance} . '_' . $options{extra_options}->{metric}};
-    $self->{result_values}->{value_per_sec} = $self->{result_values}->{value} / $self->{result_values}->{timeframe};
-    $self->{result_values}->{metric} = $options{extra_options}->{metric};
-    return 0;
-}
-
-sub custom_metric_threshold {
-    my ($self, %options) = @_;
-
-    my $exit = $self->{perfdata}->threshold_check(
-        value => defined($self->{instance_mode}->{option_results}->{per_sec}) ? $self->{result_values}->{value_per_sec} : $self->{result_values}->{value},
-        threshold => [ { label => 'critical-' . $metrics_mapping{$self->{result_values}->{metric}}->{label}, exit_litteral => 'critical' },
-                       { label => 'warning-' . $metrics_mapping{$self->{result_values}->{metric}}->{label}, exit_litteral => 'warning' } ]);
-    return $exit;
-}
-
-sub custom_metric_perfdata {
-    my ($self, %options) = @_;
-    $self->{output}->perfdata_add(
-        instances => $self->{instance},
-        label => $metrics_mapping{$self->{result_values}->{metric}}->{label},
-        nlabel => $metrics_mapping{$self->{result_values}->{metric}}->{nlabel},
-        unit => $metrics_mapping{$self->{result_values}->{metric}}->{unit},
-        value => sprintf("%d", $self->{result_values}->{value}),
-        warning => $self->{perfdata}->get_perfdata_for_output(label => 'warning-' . $metrics_mapping{$self->{result_values}->{metric}}->{label}),
-        critical => $self->{perfdata}->get_perfdata_for_output(label => 'critical-' . $metrics_mapping{$self->{result_values}->{metric}}->{label}),
-    );
-}
 
 sub custom_metric_output {
     my ($self, %options) = @_;
@@ -108,7 +76,7 @@ sub set_counters {
     
     $self->{maps_counters_type} = [
         { name => 'metrics', type => 3, cb_prefix_output => 'prefix_metric_output', cb_long_output => 'long_output',
-          message_multiple => 'All Backend metrics are ok', indent_long_output => '    ',
+          message_multiple => 'All Backend Heath metrics are ok', indent_long_output => '    ',
             group => [
                 { name => 'statistics', display_long => 1, cb_prefix_output => 'prefix_statistics_output',
                   message_multiple => 'All metrics are ok', type => 1, skipped_code => { -10 => 1 } },
@@ -119,13 +87,13 @@ sub set_counters {
     foreach my $metric (keys %metrics_mapping) {
         my $entry = {
             label => $metrics_mapping{$metric}->{label},
+            nlabel => $metrics_mapping{$metric}->{nlabel},
             set => {
-                key_values => [ { name => $metric }, { name => 'timeframe' }, { name => 'display' } ],
-                closure_custom_calc => $self->can('custom_metric_calc'),
-                closure_custom_calc_extra_options => { metric => $metric },
-                closure_custom_output => $self->can('custom_metric_output'),
-                closure_custom_perfdata => $self->can('custom_metric_perfdata'),
-                closure_custom_threshold_check => $self->can('custom_metric_threshold'),
+                key_values => [ { name => $metric }, { name => 'display' } ],
+                output_template => $metrics_mapping{$metric}->{output} . ': %.2f',
+                perfdatas => [
+                    { value => $metric , template => '%.d', label_extra_instance => 1 }
+                ],
             }
         };
         push @{$self->{maps_counters}->{statistics}}, $entry;
@@ -198,7 +166,6 @@ sub manage_selection {
 
                 $self->{metrics}->{$instance}->{display} = $instance;
                 $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{display} = $statistic;
-                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{timeframe} = $self->{ces_frame};
                 $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{$metric} = 
                     defined($metric_results{$instance}->{$metric}->{lc($statistic)}) ? 
                     $metric_results{$instance}->{$metric}->{lc($statistic)} : 0;
@@ -217,12 +184,12 @@ __END__
 
 =head1 MODE
 
-Check elb instances network metrics.
+Check ELB instances Backend Health metrics.
 
 Example: 
-perl centreon_plugins.pl --plugin=cloud::flexibleengine::elb::plugin  --mode=traffic --region='eu-west-0'
- --instance-id='28616721-d001-480b-99d0-deccacf414e7' --filter-metric='Packets' --statistic='average'
---critical-network-packets-out='10' --verbose
+perl centreon_plugins.pl --plugin=cloud::flexibleengine::elb::plugin  --mode=health --region='eu-west-0'
+ --instance-id='28616721-d001-480b-99d0-deccacf414e7' --filter-metric='unhealthy' --statistic='average'
+--critical-unhealthy-servers='1' --verbose
 
 See 'https://docs.prod-cloud-ocb.orange-business.com/en-us/usermanual/elb/elb_ug_jk_0001.html' for more informations.
 
@@ -236,14 +203,12 @@ Set the instance id (Required) (Can be multiple).
 
 =item B<--filter-metric>
 
-Filter metrics (Can be: 'NetworkIn', 'NetworkOut', 
-'NetworkPacketsIn', 'NetworkPacketsOut') 
+Filter metrics (Can be: 'unhealthy-servers', 'healthy-servers')
 (Can be a regexp).
 
 =item B<--warning-*> B<--critical-*>
 
-Thresholds warning (Can be 'network-in', 'network-out',
-'network-packets-in', 'network-packets-out'.
+Thresholds warning (Can be: 'unhealthy-servers', 'healthy-servers').
 
 =back
 

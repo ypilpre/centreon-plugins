@@ -33,6 +33,7 @@ sub new {
     $self->{modes} = {
         'discovery'       => 'cloud::flexibleengine::elb::mode::discovery',
         'traffic'     => 'cloud::flexibleengine::elb::mode::traffic',
+        'httprequests'     => 'cloud::flexibleengine::elb::mode::httprequests',
         'health'     => 'cloud::flexibleengine::elb::mode::health',
         'connections'     => 'cloud::flexibleengine::elb::mode::connections',
         'status'     => 'cloud::flexibleengine::elb::mode::status',
