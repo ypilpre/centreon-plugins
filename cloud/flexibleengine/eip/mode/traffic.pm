@@ -24,7 +24,7 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-use Data::Dumper::Simple;
+
 my %metrics_mapping = (
     'downstream_bandwidth' => {
         'output' => 'Downstream Bandwidth',
@@ -138,7 +138,7 @@ sub new {
     bless $self, $class;
     
     $options{options}->add_options(arguments => {
-        "instance-id:s@"	        => { name => 'name' },
+        "instance-id:s@"	        => { name => 'instance_id' },
         "filter-metric:s"   => { name => 'filter_metric' },
         "filter:s"    => { name => 'filter' },
     });
@@ -151,12 +151,12 @@ sub check_options {
     $self->SUPER::check_options(%options);
 
 
-    if (!defined($self->{option_results}->{name}) || $self->{option_results}->{name} eq '') {
-        $self->{output}->add_option_msg(short_msg => "Need to specify --name option.");
+    if (!defined($self->{option_results}->{instance_id}) || $self->{option_results}->{instance_id} eq '') {
+        $self->{output}->add_option_msg(short_msg => "Need to specify --instance-id option.");
         $self->{output}->option_exit();
     }
 
-    foreach my $instance (@{$self->{option_results}->{name}}) {
+    foreach my $instance (@{$self->{option_results}->{instance_id}}) {
         if ($instance ne '') {
             push @{$self->{ces_instance}}, $instance;
         }
