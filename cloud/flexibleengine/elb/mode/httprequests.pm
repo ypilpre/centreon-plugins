@@ -276,7 +276,7 @@ perl centreon_plugins.pl --plugin=cloud::flexibleengine::elb::plugin  --mode=tra
 
 See 'https://support.huaweicloud.com/intl/en-us/usermanual-elb/elb_ug_jk_0001.html' for more informations.
 
-Default statistic: 'average' / All satistics are valid.
+Default statistic: 'average' / All statistics are valid.
 
 =over 8
 

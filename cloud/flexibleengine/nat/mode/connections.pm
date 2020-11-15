@@ -220,7 +220,7 @@ perl centreon_plugins.pl --plugin=cloud::flexibleengine::eip::plugin  --mode=tra
 
 See 'https://docs.prod-cloud-ocb.orange-business.com/en-us/usermanual/vpc/vpc010012.html' for more informations.
 
-Default statistic: 'average' / All satistics are valid.
+Default statistic: 'average' / All statistics are valid.
 
 =over 8
 

@@ -230,7 +230,7 @@ perl centreon_plugins.pl --plugin=cloud::flexibleengine::ecs::plugin --mode=disk
 
 https://docs.prod-cloud-ocb.orange-business.com/en-us/usermanual/ecs/en-us_topic_0030911465.html
 
-Default statistic: 'average' / All satistics are valid.
+Default statistic: 'average' / All statistics are valid.
 
 =over 8
 

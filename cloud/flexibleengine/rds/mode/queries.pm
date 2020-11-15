@@ -290,7 +290,7 @@ perl centreon_plugins.pl --plugin=cloud::flexibleengine::rds::plugin  --mode=que
 
 More doc about these metrics : https://docs.prod-cloud-ocb.orange-business.com/usermanual/rds/rds_06_0001.html
 
-Default statistic: 'average' / All satistics are valid.
+Default statistic: 'average' / All statistics are valid.
 
 MySQL Engine Only !
 

@@ -217,7 +217,7 @@ perl centreon_plugins.pl --plugin=cloud::aws::ecs::plugin  --mode=cpu --region='
 --type='ecs' --instance_id='30191908-bf15-44e8-bf5c-ffa121bbd4ea' --filter=average
 --critical-cpu-usage=80 --verbose
 
-Default statistic: 'average' / All satistics are valid.
+Default statistic: 'average' / All statistics are valid.
 
 =over 8
 

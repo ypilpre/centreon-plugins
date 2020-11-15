@@ -203,7 +203,7 @@ perl centreon_plugins.pl --plugin=cloud::flexibleengine::rds::plugin  --mode=mem
 --type='cluster' --engine='mysql' --instance_id='30191908-bf15-44e8-bf5c-ffa121bbd4ea' --filter=average
 --critical-memory-utilization=80 --verbose
 
-Default statistic: 'average' / All satistics are valid.
+Default statistic: 'average' / All statistics are valid.
 
 =over 8
 
