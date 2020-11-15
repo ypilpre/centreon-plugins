@@ -47,14 +47,14 @@ sub new {
 sub custom_status_output {
     my ($self, %options) = @_;
     
-    my $msg = sprintf('status: %s', $self->{result_values}->{status});
+    my $msg = sprintf('status: %s', $self->{result_values}->{state});
     return $msg;
 }
 
 sub custom_status_calc {
     my ($self, %options) = @_;
     
-    $self->{result_values}->{status} = $options{new_datas}->{$self->{instance} . '_status'};
+    $self->{result_values}->{state} = $options{new_datas}->{$self->{instance} . '_status'};
     $self->{result_values}->{display} = $options{new_datas}->{$self->{instance} . '_display'};
     return 0;
 }
@@ -88,15 +88,7 @@ sub set_counters {
     ];
 
     $self->{maps_counters}->{global} = [
-        { label => 'creating', nlabel => 'evs.volumes.status.creating.count', set => {
-                key_values => [ { name => 'creating' }  ],
-                output_template => "Creating : %s",
-                perfdatas => [
-                    { value => 'creating', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'available', nlabel => 'evs.volumes.status.available.count', set => {
+        { label => 'total-available', nlabel => 'evs.volumes.status.available.count', set => {
                 key_values => [ { name => 'available' }  ],
                 output_template => "Available : %s",
                 perfdatas => [
@@ -104,7 +96,7 @@ sub set_counters {
                 ],
             }
         },
-        { label => 'in-use', nlabel => 'evs.volumes.status.in-use.count', set => {
+        { label => 'total-in-use', nlabel => 'evs.volumes.status.in-use.count', set => {
                 key_values => [ { name => 'in-use' }  ],
                 output_template => "In-Use : %s",
                 perfdatas => [
@@ -112,31 +104,7 @@ sub set_counters {
                 ],
             }
         },
-        { label => 'attaching', nlabel => 'evs.volumes.status.attaching.count', set => {
-                key_values => [ { name => 'attaching' }  ],
-                output_template => "Attaching : %s",
-                perfdatas => [
-                    { value => 'attaching', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'detaching', nlabel => 'evs.volumes.status.detaching.count', set => {
-                key_values => [ { name => 'detaching' }  ],
-                output_template => "Detaching : %s",
-                perfdatas => [
-                    { value => 'detaching', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'restoring-backup', nlabel => 'evs.volumes.status.restoring-backup.count', set => {
-                key_values => [ { name => 'restoring-backup' }  ],
-                output_template => "Restoring Backup : %s",
-                perfdatas => [
-                    { value => 'restoring-backup', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'error_restoring', nlabel => 'evs.volumes.status.error_restoring.count', set => {
+        { label => 'total-error-restoring', nlabel => 'evs.volumes.status.error_restoring.count', set => {
                 key_values => [ { name => 'error_restoring' }  ],
                 output_template => "Error Restoring : %s",
                 perfdatas => [
@@ -144,31 +112,7 @@ sub set_counters {
                 ],
             }
         },
-        { label => 'uploading', nlabel => 'evs.volumes.status.uploading.count', set => {
-                key_values => [ { name => 'uploading' }  ],
-                output_template => "Uploading : %s",
-                perfdatas => [
-                    { value => 'uploading', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'downloading', nlabel => 'evs.volumes.status.downloading.count', set => {
-                key_values => [ { name => 'downloading' }  ],
-                output_template => "Downloading : %s",
-                perfdatas => [
-                    { value => 'downloading', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'extending', nlabel => 'evs.volumes.status.extending.count', set => {
-                key_values => [ { name => 'extending' }  ],
-                output_template => "Extending : %s",
-                perfdatas => [
-                    { value => 'extending', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'error_extending', nlabel => 'evs.volumes.status.error_extending.count', set => {
+        { label => 'total-error-extending', nlabel => 'evs.volumes.status.error_extending.count', set => {
                 key_values => [ { name => 'error_extending' }  ],
                 output_template => "Error Extending : %s",
                 perfdatas => [
@@ -176,7 +120,7 @@ sub set_counters {
                 ],
             }
         },
-        { label => 'error', nlabel => 'evs.volumes.status.error.count', set => {
+        { label => 'total-error', nlabel => 'evs.volumes.status.error.count', set => {
                 key_values => [ { name => 'error' }  ],
                 output_template => "Error : %s",
                 perfdatas => [
@@ -184,7 +128,7 @@ sub set_counters {
                 ],
             }
         },
-        { label => 'error_deleting', nlabel => 'evs.volumes.status.error_deleting.count', set => {
+        { label => 'total-error-deleting', nlabel => 'evs.volumes.status.error_deleting.count', set => {
                 key_values => [ { name => 'error_deleting' }  ],
                 output_template => "Error Deleting : %s",
                 perfdatas => [
@@ -192,7 +136,7 @@ sub set_counters {
                 ],
             }
         },
-        { label => 'deleting', nlabel => 'evs.volumes.status.deleting.count', set => {
+        { label => 'total-deleting', nlabel => 'evs.volumes.status.deleting.count', set => {
                 key_values => [ { name => 'deleting' }  ],
                 output_template => "Deleting : %s",
                 perfdatas => [
@@ -200,15 +144,7 @@ sub set_counters {
                 ],
             }
         },
-        { label => 'rollbacking', nlabel => 'evs.volumes.status.rollbacking.count', set => {
-                key_values => [ { name => 'rollbacking' }  ],
-                output_template => "Roll Backing : %s",
-                perfdatas => [
-                    { value => 'rollbacking', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'error_rollbacking', nlabel => 'evs.volumes.status.error_rollbacking.count', set => {
+        { label => 'total-error-rollbacking', nlabel => 'evs.volumes.status.error_rollbacking.count', set => {
                 key_values => [ { name => 'error_rollbacking' }  ],
                 output_template => "Error Rollbacking : %s",
                 perfdatas => [
