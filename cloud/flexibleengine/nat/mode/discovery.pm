@@ -25,7 +25,7 @@ use base qw(centreon::plugins::mode);
 use strict;
 use warnings;
 use JSON::XS;
-use Data::Dumper::Simple;
+
 
 my %nat_size = (
     '1' => {

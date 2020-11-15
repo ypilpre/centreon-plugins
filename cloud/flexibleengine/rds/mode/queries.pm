@@ -24,7 +24,7 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-use Data::Dumper::Simple;
+
 my %metrics_mapping = (
     'rds008_qps' => {
         'std_metric' => 'queries_sec',
@@ -244,7 +244,6 @@ sub check_options {
 
     my %metric_results;
     foreach my $instance (@{$self->{ces_instance}}) {
-                print Dumper($self->{dimension_name});
 
         $metric_results{$instance} = $options{custom}->api_cloudeyes_get_metric(
             namespace => 'SYS.RDS',
