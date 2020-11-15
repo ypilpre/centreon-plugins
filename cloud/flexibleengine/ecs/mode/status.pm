@@ -27,9 +27,10 @@ use warnings;
 use centreon::plugins::templates::catalog_functions qw(catalog_status_threshold);
 
 
+
 sub new {
     my ($class, %options) = @_;
-    my $self = $class->SUPER::new(package => __PACKAGE__, %options);
+    my $self = $class->SUPER::new(package => __PACKAGE__, %options, force_new_perfdata => 1);
     bless $self, $class;
     
     $options{options}->add_options(arguments => {
@@ -45,100 +46,16 @@ sub new {
 sub custom_status_output {
     my ($self, %options) = @_;
     
-    my $msg = sprintf('state: %s', $self->{result_values}->{state});
+    my $msg = sprintf('status: %s', $self->{result_values}->{state});
     return $msg;
 }
 
 sub custom_status_calc {
     my ($self, %options) = @_;
     
-    $self->{result_values}->{state} = $options{new_datas}->{$self->{instance} . '_state'};
+    $self->{result_values}->{state} = $options{new_datas}->{$self->{instance} . '_status'};
     $self->{result_values}->{display} = $options{new_datas}->{$self->{instance} . '_display'};
     return 0;
-}
-
-sub prefix_global_output {
-    my ($self, %options) = @_;
-
-    return "Total ECS Server ";
-}
-
-sub prefix_ecs_output {
-    my ($self, %options) = @_;
-    
-    return "ECS Server '" . $options{instance_value}->{display} . "' ";
-}
-
-sub set_counters {
-    my ($self, %options) = @_;
-    
-    $self->{maps_counters_type} = [
-        { name => 'global', type => 0, cb_prefix_output => 'prefix_global_output' },
-        { name => 'ecs_servers', type => 1, cb_prefix_output => 'prefix_ecs_output',
-          message_multiple => 'All servers are ok' },
-    ];
-
-    $self->{maps_counters}->{global} = [
-        { label => 'building', nlabel => 'ecs.servers.status.building.count', set => {
-                key_values => [ { name => 'building' }  ],
-                output_template => "Building : %s",
-                perfdatas => [
-                    { value => 'building', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'active', nlabel => 'ecs.servers.status.active.count', set => {
-                key_values => [ { name => 'active' }  ],
-                output_template => "Active : %s",
-                perfdatas => [
-                    { value => 'active', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'stopped', nlabel => 'ecs.servers.status.stopped.count', set => {
-                key_values => [ { name => 'stopped' }  ],
-                output_template => "Stopped : %s",
-                perfdatas => [
-                    { value => 'stopped', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'resized', nlabel => 'ecs.servers.status.resized.count', set => {
-                key_values => [ { name => 'resized' }  ],
-                output_template => "Resized : %s",
-                perfdatas => [
-                    { value => 'resized', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'error', nlabel => 'ecs.servers.status.error.count', set => {
-                key_values => [ { name => 'error' }  ],
-                output_template => "Error : %s",
-                perfdatas => [
-                    { value => 'error', template => '%d', min => 0 },
-                ],
-            }
-        },
-        { label => 'deleted', nlabel => 'ecs.servers.status.deleted.count', set => {
-                key_values => [ { name => 'deleted' }  ],
-                output_template => "Deleted : %s",
-                perfdatas => [
-                    { value => 'deleted', template => '%d', min => 0 },
-                ],
-            }
-        },
-    ];
-    
-    $self->{maps_counters}->{ecs_servers} = [
-        { label => 'status', threshold => 0, set => {
-                key_values => [ { name => 'state' }, { name => 'display' } ],
-                closure_custom_calc => $self->can('custom_status_calc'),
-                closure_custom_output => $self->can('custom_status_output'),
-                closure_custom_perfdata => sub { return 0; },
-                closure_custom_threshold_check => \&catalog_status_threshold,
-            }
-        },
-    ];
 }
 
 sub check_options {
@@ -148,36 +65,94 @@ sub check_options {
     $self->change_macros(macros => ['warning_status', 'critical_status']);
 }
 
+sub prefix_global_output {
+    my ($self, %options) = @_;
+
+    return "Total ECS instances ";
+}
+
+sub prefix_ecsservice_output {
+    my ($self, %options) = @_;
+    
+    return "Server '" . $options{instance_value}->{display} . "' ";
+}
+
+sub set_counters {
+    my ($self, %options) = @_;
+    
+    $self->{maps_counters_type} = [
+        { name => 'global', type => 0, cb_prefix_output => 'prefix_global_output' },
+        { name => 'ecs_instances', type => 1, cb_prefix_output => 'prefix_ecsservice_output',
+          message_multiple => 'All servers are ok' },
+    ];
+
+        $self->{maps_counters}->{global} = [
+        { label => 'total-active',  nlabel => 'ecs.instance.status.active.count', set => {
+                key_values => [ { name => 'active' }  ],
+                output_template => "Active : %s",
+                perfdatas => [
+                    {value => 'active', template => '%d', min => 0 },
+                ],
+            }
+        },
+        { label => 'total-stopped',nlabel => 'ecs.instance.status.stopped.count',set => {
+                key_values => [ { name => 'stopped' }  ],
+                output_template => "Stopped : %s",
+                perfdatas => [
+                    {  value => 'stopped', template => '%d', min => 0 },
+                ],
+            }
+        },
+        { label => 'total-error', nlabel => 'ecs.instance.status.active.count',set => {
+                key_values => [ { name => 'error' }  ],
+                output_template => "Error : %s",
+                perfdatas => [
+                    { value => 'error', template => '%d', min => 0 },
+                ],
+            }
+        }
+    ];
+    
+    $self->{maps_counters}->{evs_volume} = [
+        { label => 'status', threshold => 0, set => {
+                key_values => [ { name => 'status' }, { name => 'display' } ],
+                closure_custom_calc => $self->can('custom_status_calc'),
+                closure_custom_output => $self->can('custom_status_output'),
+                closure_custom_perfdata => sub { return 0; },
+                closure_custom_threshold_check => \&catalog_status_threshold,
+            }
+        },
+    ];
+}
 
 sub manage_selection {
     my ($self, %options) = @_;
 
     $self->{global} = {
-        building => 0, active => 0, stopped => 0, resized => 0, error => 0, deleted => 0,
+        active => 0, stopped => 0, error =>0
     };
-    $self->{ecs_servers} = {};
+    $self->{ecs_instances} = {};
     my $result = $options{custom}->api_list_ecs();
-
-    foreach my $ecs (@{$result->{servers}}) {
+    foreach  (@{$result->{servers}}) {
         if (defined($self->{option_results}->{filter_instance_id}) && $self->{option_results}->{filter_instance_id} ne '' &&
-            $ecs->{id} !~ /$self->{option_results}->{filter_instance_id}/) {
-            $self->{output}->output_add(long_msg => "skipping '" . $ecs->{id} . "': no matching filter.", debug => 1);
+            $_->{id} !~ /$self->{option_results}->{filter_instance_id}/) {
+            $self->{output}->output_add(long_msg => "skipping '" . $_->{id} . "': no matching filter.", debug => 1);
             next;
-        }
+        };
         if (defined($self->{option_results}->{filter_instance_name}) && $self->{option_results}->{filter_instance_name} ne '' &&
-            $ecs->{name} !~ /$self->{option_results}->{filter_instance_name}/) {
-            $self->{output}->output_add(long_msg => "skipping '" . $ecs->{name} . "': no matching filter.", debug => 1);
+            $_->{name} !~ /$self->{option_results}->{filter_instance_name}/) {
+            $self->{output}->output_add(long_msg => "skipping '" . $_->{name} . "': no matching filter.", debug => 1);
             next;
-        }
-        ;
-        $self->{ecs_servers}->{$ecs->{id}} = { 
-            display => $ecs->{name},
-            state => $ecs->{'OS-EXT-STS:vm_state'},
-            };
-        $self->{global}->{$ecs->{'OS-EXT-STS:vm_state'}}++;
+        };
+        $self->{ecs_instances}->{$_->{id}} = { 
+            display => $_->{name},
+            status => $_->{'OS-EXT-STS:vm_state'},
+        };
+       
+        $self->{global}->{$_->{'OS-EXT-STS:vm_state'}}++;
     }
-    if (scalar(%{$self->{ecs_servers}}) <= 0) {
-        $self->{output}->add_option_msg(short_msg => "No ECS server found.");
+    if (scalar(%{$self->{ecs_instances}}) <= 0) {
+        $self->{output}->add_option_msg(short_msg => "No ECS instance found.");
         $self->{output}->option_exit();
     }
 }
@@ -224,8 +199,12 @@ Can used special variables like: %{state}, %{display}
 =item B<--warning-*> B<--critical-*>
 
 Threshold warning.
-Can be: 'building', 'stopped', 'resized', 'error' or
-'deleted'
+Can be:  'total-stopped',  'total-error'
+
+=item B<--critical-*>
+
+Threshold critical.
+Can be: 'total-stopped', 'total-error'.
 
 =back
 
