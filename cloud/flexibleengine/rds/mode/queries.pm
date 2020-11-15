@@ -50,14 +50,14 @@ my %metrics_mapping = (
     'rds030_comdml_ins_sel_count' => {
         'std_metric' => 'insert_select_state_sec',
         'output' => 'INSERT/SELECT Statements per Second',
-        'label' => 'state-ins_sel-sec',
+        'label' => 'state-ins-sel-sec',
         'nlabel' => 'rds.statement.insert_select.sec',
         'unit','q/s'
     },
     'rds031_comdml_rep_count' => {
         'std_metric' => 'replace_state_sec',
         'output' => 'REPLACE Statements per Second',
-        'label' => 'state-ins_sel-sec',
+        'label' => 'state-replace-sec',
         'nlabel' => 'rds.statement.replace.sec',
         'unit','q/s'
     },
