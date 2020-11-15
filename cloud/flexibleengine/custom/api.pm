@@ -29,7 +29,6 @@ use JSON::XS;
 use URI::Encode;
 use Digest::MD5 qw(md5_hex);
 use Date::Parse qw(str2time);
-use Data::Dumper::Simple;
 
 
 sub new {
@@ -54,6 +53,9 @@ sub new {
                                     "username:s"            => { name => 'username' },
                                     "password:s"            => { name => 'password' },
                                     "region:s"              => { name => 'region' },
+                                    'frame:s'               => { name => 'frame' },
+                                    'period:s'              => { name => 'period' },
+                                    'zeroed'                => { name => 'zeroed' },
                                     "proxyurl:s"            => { name => 'proxyurl' },
                                     "proxypac:s"            => { name => 'proxypac' },
                                     "timeout:s"             => { name => 'timeout' },
@@ -300,53 +302,41 @@ sub request_api {
 }
 
 
-sub internal_api_list_servers {
+sub api_list_ecs {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $servers_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2/'.$self->{project_id}.'/servers',hostname => '');
-    return $servers_list->{servers};
+    my $servers_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/servers/detail',hostname => '');
+    return $servers_list;
 }
 
-sub internal_api_detail_server {
+sub api_list_ecs_tags {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
-    my $server_detail = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2/'.$self->{project_id}.'/servers/'.$options{server_id},hostname => '');
-    return $server_detail->{server};
+    $self->{http}->add_header(key => 'X-OpenStack-Nova-API-Version', value => '2.26');
+    my $ecs_tags_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/servers/'.$options{server_id}.'/tags',hostname => '');
+    my $ecs_tags;
+    foreach my $tag (@{$ecs_tags_list->{tags}}) {
+        my @tag_content=split /=/,$tag;
+        $ecs_tags .= " ".join(',',@tag_content);
+    }
+    return $ecs_tags;
 }
 
-
-
-
-sub api_list_servers {
+sub api_list_ecs_with_tag {
   my ($self, %options) = @_;
 
-    my $servers = [];
-    my $list_servers = $self->internal_api_list_servers();
-    foreach  my $server (@{$list_servers}) {
-        my $server_detail = $self->internal_api_detail_server(server_id=>$server->{id});
-        push @{$servers} , {
-            Id => $server_detail->{id},
-            Status => $server_detail->{status},
-            AvailabilityZone => $server_detail->{'OS-EXT-AZ:availability_zone'},
-            Name => $server_detail->{name},
-            
-        };
+    my $ecs_with_tag ;
+    my $list_servers = $self->api_list_ecs();
+    foreach  my $server (@{$list_servers->{servers}}) {
+        my $server_tags = $self->api_list_ecs_tags(server_id=>$server->{id});        
+        push @{$ecs_with_tag} , {
+            id => $server->{id},
+            status => $server->{status},
+            availabilityzone => $server->{'OS-EXT-AZ:availability_zone'},
+            tags => $server_tags
+        }; 
     }
-
-    return $servers;
-}
-
-sub api_list_full_servers {
-  my ($self, %options) = @_;
-
-    my $servers = [];
-    my $list_servers = $self->internal_api_list_servers();
-    foreach  my $server (@{$list_servers}) {
-        my $server_detail = $self->internal_api_detail_server(server_id=>$server->{id});
-        push @{$servers} ,$server_detail;
-    }
-
-    return $servers;
+    return $ecs_with_tag;
 }
 
 sub api_list_vpc {
@@ -639,6 +629,11 @@ Set Flexible Engine Password.
 =item B<--region>
 
 Set Flexible Engine region
+
+=item B<--zeroed>
+
+Set metrics value to 0 if none. Usefull when Monitor
+does not return value when not defined.
 
 =item B<--proxyurl>
 
