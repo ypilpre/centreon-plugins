@@ -52,19 +52,18 @@ sub run {
     $disco_stats->{start_time} = time();
 
 
-    my $servers = $options{custom}->api_list_full_servers();
-    foreach my $server (@{$servers}) {
+    my $servers = $options{custom}->api_list_ecs();
+    foreach my $server (@{$servers->{servers}}) {
             next if (!defined($server->{id}));            ;
             my %ecs;
             $ecs{type} = "ecs";
-            $ecs{instance_id} = $server->{id};
+            $ecs{id} = $server->{id};
             $ecs{name} = $server->{name};
             $ecs{status} = $server->{status};
             $ecs{state} = $server->{'OS-EXT-STS:vm_state'};
             $ecs{key_name} = $server->{key_name};
             $ecs{flavor} = $server->{flavor}->{id};
             $ecs{zone} = $server->{'OS-EXT-AZ:availability_zone'};
-            $ecs{hypervisor} = $server->{'OS-EXT-SRV-ATTR:hypervisor_hostname'};
             push @disco_data, \%ecs;
     }
 

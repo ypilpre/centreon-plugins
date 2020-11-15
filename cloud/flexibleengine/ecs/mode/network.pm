@@ -24,7 +24,7 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-use Data::Dumper::Simple;
+
 my %metrics_mapping = (
     'network_incoming_bytes_rate_inband' => {
         'output' => 'Newtork Inband Incoming Bytes Rate',

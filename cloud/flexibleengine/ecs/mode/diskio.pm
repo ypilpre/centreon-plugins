@@ -253,7 +253,7 @@ Filter metrics (Can be: 'disk_read_bytes_rate', 'disk_write_bytes_rate',
 =item B<--warning-*> B<--critical-*>
 
 Thresholds warning (Can be 'disk-write-bytes-rate', 'disk-write-bytes-rate',
-'disk-write-request-rate', 'disk-read-requests-rate').
+'disk-write-requests-rate', 'disk-read-requests-rate').
 
 =back
 

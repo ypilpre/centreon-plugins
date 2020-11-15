@@ -18,7 +18,7 @@
 # limitations under the License.
 #
 
-package cloud::flexibleengine::ecs::mode::serversstatus;
+package cloud::flexibleengine::ecs::mode::status;
 
 use base qw(centreon::plugins::templates::counter);
 
@@ -27,14 +27,14 @@ use warnings;
 use centreon::plugins::templates::catalog_functions qw(catalog_status_threshold);
 
 
-
 sub new {
     my ($class, %options) = @_;
-    my $self = $class->SUPER::new(package => __PACKAGE__, %options, force_new_perfdata => 1);
+    my $self = $class->SUPER::new(package => __PACKAGE__, %options);
     bless $self, $class;
     
     $options{options}->add_options(arguments => {
-        "filter-serverid:s" => { name => 'filter_serverid' },
+        "filter-instance-id:s" => { name => 'filter_instance_id' },
+        "filter-instance-name:s" => { name => 'filter_instance_name' },
         "warning-status:s"    => { name => 'warning_status', default => '' },
         "critical-status:s"   => { name => 'critical_status', default => '' }
     });
@@ -45,7 +45,7 @@ sub new {
 sub custom_status_output {
     my ($self, %options) = @_;
     
-    my $msg = sprintf('state: %s, status: %s', $self->{result_values}->{state}, $self->{result_values}->{status});
+    my $msg = sprintf('state: %s', $self->{result_values}->{state});
     return $msg;
 }
 
@@ -53,28 +53,20 @@ sub custom_status_calc {
     my ($self, %options) = @_;
     
     $self->{result_values}->{state} = $options{new_datas}->{$self->{instance} . '_state'};
-    $self->{result_values}->{status} = $options{new_datas}->{$self->{instance} . '_status'};
     $self->{result_values}->{display} = $options{new_datas}->{$self->{instance} . '_display'};
     return 0;
-}
-
-sub check_options {
-    my ($self, %options) = @_;
-    $self->SUPER::check_options(%options);
-
-    $self->change_macros(macros => ['warning_status', 'critical_status']);
 }
 
 sub prefix_global_output {
     my ($self, %options) = @_;
 
-    return "Total ECS servers ";
+    return "Total ECS Server ";
 }
 
-sub prefix_ecsservice_output {
+sub prefix_ecs_output {
     my ($self, %options) = @_;
     
-    return "Server '" . $options{server_value}->{display} . "' ";
+    return "ECS Server '" . $options{instance_value}->{display} . "' ";
 }
 
 sub set_counters {
@@ -82,7 +74,7 @@ sub set_counters {
     
     $self->{maps_counters_type} = [
         { name => 'global', type => 0, cb_prefix_output => 'prefix_global_output' },
-        { name => 'ecs_servers', type => 1, cb_prefix_output => 'prefix_awsinstance_output',
+        { name => 'ecs_servers', type => 1, cb_prefix_output => 'prefix_ecs_output',
           message_multiple => 'All servers are ok' },
     ];
 
@@ -137,9 +129,9 @@ sub set_counters {
         },
     ];
     
-    $self->{maps_counters}->{aws_instances} = [
+    $self->{maps_counters}->{ecs_servers} = [
         { label => 'status', threshold => 0, set => {
-                key_values => [ { name => 'state' }, { name => 'status' }, { name => 'display' } ],
+                key_values => [ { name => 'state' }, { name => 'display' } ],
                 closure_custom_calc => $self->can('custom_status_calc'),
                 closure_custom_output => $self->can('custom_status_output'),
                 closure_custom_perfdata => sub { return 0; },
@@ -149,30 +141,42 @@ sub set_counters {
     ];
 }
 
+sub check_options {
+    my ($self, %options) = @_;
+    $self->SUPER::check_options(%options);
+
+    $self->change_macros(macros => ['warning_status', 'critical_status']);
+}
+
+
 sub manage_selection {
     my ($self, %options) = @_;
 
     $self->{global} = {
         building => 0, active => 0, stopped => 0, resized => 0, error => 0, deleted => 0,
     };
-    $self->{ecs_server} = {};
-    my $result = $options{custom}->api_get_servers_status();
+    $self->{ecs_servers} = {};
+    my $result = $options{custom}->api_list_ecs();
 
-    foreach  (@{$result}) {
-        if (defined($self->{option_results}->{filter_instanceid}) && $self->{option_results}->{filter_instanceid} ne '' &&
-            $_->{Id} !~ /$self->{option_results}->{filter_instanceid}/) {
-            $self->{output}->output_add(long_msg => "skipping '" . $_->{Id} . "': no matching filter.", debug => 1);
+    foreach my $ecs (@{$result->{servers}}) {
+        if (defined($self->{option_results}->{filter_instance_id}) && $self->{option_results}->{filter_instance_id} ne '' &&
+            $ecs->{id} !~ /$self->{option_results}->{filter_instance_id}/) {
+            $self->{output}->output_add(long_msg => "skipping '" . $ecs->{id} . "': no matching filter.", debug => 1);
+            next;
+        }
+        if (defined($self->{option_results}->{filter_instance_name}) && $self->{option_results}->{filter_instance_name} ne '' &&
+            $ecs->{name} !~ /$self->{option_results}->{filter_instance_name}/) {
+            $self->{output}->output_add(long_msg => "skipping '" . $ecs->{name} . "': no matching filter.", debug => 1);
             next;
         }
         ;
-        $self->{ecs_server}->{$_->{Id}} = { 
-            display => $_->{Name},
-            state => $_->{State},
-            status => $_->{Status},
-        };
-        $self->{global}->{$_->{State}}++;
+        $self->{ecs_servers}->{$ecs->{id}} = { 
+            display => $ecs->{name},
+            state => $ecs->{'OS-EXT-STS:vm_state'},
+            };
+        $self->{global}->{$ecs->{'OS-EXT-STS:vm_state'}}++;
     }
-    if (scalar(%{$self->{ecs_server}}) <= 0) {
+    if (scalar(%{$self->{ecs_servers}}) <= 0) {
         $self->{output}->add_option_msg(short_msg => "No ECS server found.");
         $self->{output}->option_exit();
     }
@@ -188,7 +192,7 @@ Check ECS servers status.
 
 Example: 
 perl centreon_plugins.pl --plugin=cloud::flexibleengine::ecs::plugin --mode=status --region='eu-west-0'
---filter-serverid='.*' --filter-counters='^active$' --critical-running='10' --verbose
+--filter-instance-id='.*' --filter-counters='^active$' --critical-running='10' --verbose
 
 See 'https://docs.prod-cloud-ocb.orange-business.com/en-us/api/ecs/en-us_topic_0178420672.html' for more informations.
 
@@ -199,9 +203,13 @@ See 'https://docs.prod-cloud-ocb.orange-business.com/en-us/api/ecs/en-us_topic_0
 Only display some counters (regexp can be used).
 Example: --filter-counters='^active$'
 
-=item B<--filter-serverd>
+=item B<--filter-instance-name>
 
-Filter by server id (can be a regexp).
+Filter by instance name (can be a regexp).
+
+=item B<--filter-instance-id>
+
+Filter by instance id (can be a regexp).
 
 =item B<--warning-status>
 

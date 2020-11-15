@@ -31,7 +31,7 @@ sub new {
 
     $self->{version} = '1.0';
     %{$self->{modes}} = (
-        'list-servers'   => 'cloud::flexibleengine::ecs::mode::listservers',
+        'list-instances'   => 'cloud::flexibleengine::ecs::mode::listinstances',
         'status'        => 'cloud::flexibleengine::ecs::mode::status',
         'discovery'      => 'cloud::flexibleengine::ecs::mode::discovery',
         'cpu'            => 'cloud::flexibleengine::ecs::mode::cpu',

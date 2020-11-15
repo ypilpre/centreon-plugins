@@ -18,14 +18,14 @@
 # limitations under the License.
 #
 
-package cloud::flexibleengine::ecs::mode::listservers;
+package cloud::flexibleengine::ecs::mode::listinstances;
 
 use base qw(centreon::plugins::mode);
 
 
 use strict;
 use warnings;
-use Data::Dumper;
+
  
 sub new {
     my ($class, %options) = @_;
@@ -44,8 +44,7 @@ sub check_options {
 
 sub manage_selection {
     my ($self, %options) = @_;
-    $self->{servers} = $options{custom}->api_list_servers();
-   
+    $self->{servers} = $options{custom}->api_list_ecs();
 
 }
 
@@ -54,11 +53,10 @@ sub run {
     my ($self, %options) = @_;
 
     $self->manage_selection(%options);
-    foreach  (@{$self->{servers}}) {
-        
+    foreach  (@{$self->{servers}->{servers}}) {
         $self->{output}->output_add(
-            long_msg => sprintf("[Id = %s][Name= %s][AvailabilityZone = %s][Status = %s]",
-             $_->{Id},$_->{Name}, $_->{AvailabilityZone}, $_->{Status}));
+            long_msg => sprintf("[id = %s][name= %s][availabilityzone = %s][status = %s]",
+             $_->{id},$_->{name}, $_->{'OS-EXT-AZ:availability_zone'}, $_->{status}));
     }
     $self->{output}->output_add(severity => 'OK',
                                 short_msg => 'List servers:');
@@ -69,19 +67,19 @@ sub run {
 sub disco_format {
     my ($self, %options) = @_;
 
-    $self->{output}->add_disco_format(elements => ['id', 'name', 'availabilityzone' ,'status']);
+    $self->{output}->add_disco_format(elements => ['id', 'name', 'availabilityzone','status']);
 }
 
 sub disco_show {
     my ($self, %options) = @_;
 
     $self->manage_selection(%options);
-    foreach  (@{$self->{servers}}) {
+    foreach  (@{$self->{servers}->{servers}}) {
         $self->{output}->add_disco_entry(
-            instance_id => $_->{Id},
-            name => $_->{Name},
-            availabilityzone => $_->{AvailabilityZone},
-            status => $_->{Status}
+            instance_id => $_->{id},
+            name => $_->{name},
+            availabilityzone => $_->{'OS-EXT-AZ:availability_zone'},
+            status => $_->{status}
         );
     }
 }
