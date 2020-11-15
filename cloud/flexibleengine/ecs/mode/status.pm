@@ -113,7 +113,7 @@ sub set_counters {
         }
     ];
     
-    $self->{maps_counters}->{evs_volume} = [
+    $self->{maps_counters}->{ecs_instances} = [
         { label => 'status', threshold => 0, set => {
                 key_values => [ { name => 'status' }, { name => 'display' } ],
                 closure_custom_calc => $self->can('custom_status_calc'),
