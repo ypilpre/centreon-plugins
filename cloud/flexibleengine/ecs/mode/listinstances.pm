@@ -55,8 +55,8 @@ sub run {
     $self->manage_selection(%options);
     foreach  (@{$self->{servers}->{servers}}) {
         $self->{output}->output_add(
-            long_msg => sprintf("[id = %s][name= %s][availabilityzone = %s][status = %s]",
-             $_->{id},$_->{name}, $_->{'OS-EXT-AZ:availability_zone'}, $_->{status}));
+            long_msg => sprintf("[id = %s][name= %s][availabilityzone = %s][flavor=%s][type=%s][status = %s]",
+             $_->{id},$_->{name}, $_->{'OS-EXT-AZ:availability_zone'},  $_->{flavor}->{id},($_->{flavor}->{id} =~ /physical/)?'bms':'ecs',$_->{status}));
     }
     $self->{output}->output_add(severity => 'OK',
                                 short_msg => 'List servers:');
@@ -67,7 +67,7 @@ sub run {
 sub disco_format {
     my ($self, %options) = @_;
 
-    $self->{output}->add_disco_format(elements => ['id', 'name', 'availabilityzone','status']);
+    $self->{output}->add_disco_format(elements => ['id', 'name', 'availabilityzone','flavor','type','status']);
 }
 
 sub disco_show {
@@ -75,9 +75,12 @@ sub disco_show {
 
     $self->manage_selection(%options);
     foreach  (@{$self->{servers}->{servers}}) {
+
         $self->{output}->add_disco_entry(
             instance_id => $_->{id},
             name => $_->{name},
+            flavor =>  $_->{flavor}->{id},
+            type => ($_->{flavor}->{id} =~ /physical/)?'bms':'ecs',
             availabilityzone => $_->{'OS-EXT-AZ:availability_zone'},
             status => $_->{status}
         );

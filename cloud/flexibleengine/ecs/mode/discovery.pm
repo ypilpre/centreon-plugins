@@ -56,7 +56,7 @@ sub run {
     foreach my $server (@{$servers->{servers}}) {
             next if (!defined($server->{id}));            ;
             my %ecs;
-            $ecs{type} = "ecs";
+            $ecs{type} = ($server->{flavor}->{id} =~ /physical/)?"bms":"ecs";
             $ecs{id} = $server->{id};
             $ecs{name} = $server->{name};
             $ecs{status} = $server->{status};
