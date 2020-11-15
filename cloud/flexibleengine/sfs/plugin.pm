@@ -34,7 +34,7 @@ sub new {
         'list-shares'   => 'cloud::flexibleengine::sfs::mode::listshares',
         'status'        => 'cloud::flexibleengine::sfs::mode::status',
         'discovery'      => 'cloud::flexibleengine::sfs::mode::discovery',
-        'fsio'         => 'cloud::flexibleengine::sfs::mode::fsio',
+        'bandwidth'         => 'cloud::flexibleengine::sfs::mode::bandwidth',
         'size-usage'         => 'cloud::flexibleengine::sfs::mode::sizeusage',
 
             );

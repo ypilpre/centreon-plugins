@@ -25,7 +25,7 @@ use base qw(centreon::plugins::templates::counter);
 use strict;
 use warnings;
 use centreon::plugins::templates::catalog_functions qw(catalog_status_threshold);
-use Data::Dumper::Simple;
+
 
 
 sub new {
@@ -204,10 +204,10 @@ sub manage_selection {
     $self->{global} = {
         creating => 0, available => 0, 
         shrinking =>0, shrinking_error =>0,
-        extending => 0, shrinking_possible_data_loss_error =>0,
+        extending => 0, 'shrinking_possible_data_loss_error' =>0,
         'error_extending' => 0,deleting => 0,
         'error_deleting' => 0, rollbacking =>0,
-        'error_rollbacking'=>0
+        'error_rollbacking'=>0, error => 0
     };
     $self->{sfs_volumes} = {};
     my $result = $options{custom}->api_list_sfs();
