@@ -201,11 +201,6 @@ Can used special variables like: %{state}, %{display}
 Threshold warning.
 Can be:  'total-stopped',  'total-error'
 
-=item B<--critical-*>
-
-Threshold critical.
-Can be: 'total-stopped', 'total-error'.
-
 =back
 
 =cut
