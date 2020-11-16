@@ -150,7 +150,7 @@ sub new {
     bless $self, $class;
     
     $options{options}->add_options(arguments => {
-        "instance-id:s@"	        => { name => 'name' },
+        "instance-id:s@"	        => { name => 'instance_id' },
         "filter-metric:s"   => { name => 'filter_metric' },
         "filter:s"    => { name => 'filter' },
     });
@@ -163,12 +163,12 @@ sub check_options {
     $self->SUPER::check_options(%options);
 
 
-    if (!defined($self->{option_results}->{name}) || $self->{option_results}->{name} eq '') {
-        $self->{output}->add_option_msg(short_msg => "Need to specify --name option.");
+    if (!defined($self->{option_results}->{instance_id}) || $self->{option_results}->{instance_id} eq '') {
+        $self->{output}->add_option_msg(short_msg => "Need to specify --instance_id option.");
         $self->{output}->option_exit();
     }
 
-    foreach my $instance (@{$self->{option_results}->{name}}) {
+    foreach my $instance (@{$self->{option_results}->{instance_id}}) {
         if ($instance ne '') {
             push @{$self->{ces_instance}}, $instance;
         }
@@ -234,8 +234,8 @@ Check ECS instances network metrics.
 
 Example: 
 perl centreon_plugins.pl --plugin=cloud::flexibleengine::ecs::plugin  --mode=network --region='eu-west-0'
- --instance-id='28616721-d001-480b-99d0-deccacf414e7' --filter-metric='Packets' --statistic='sum'
---critical-network-packets-out='10' --verbose
+ --instance-id='28616721-d001-480b-99d0-deccacf414e7' --filter-metric='network' --statistic='average'
+--critical-network-inband-in-bytes-rate='10' --verbose
 
 See 'https://docs.prod-cloud-ocb.orange-business.com/en-us/usermanual/ecs/en-us_topic_0030911465.html' for more informations.
 
@@ -249,14 +249,14 @@ Set the instance id (Required) (Can be multiple).
 
 =item B<--filter-metric>
 
-Filter metrics (Can be: 'NetworkIn', 'NetworkOut', 
-'NetworkPacketsIn', 'NetworkPacketsOut') 
+Filter metrics (Can be: 'network_incoming_bytes_rate_inband', 'network_outgoing_bytes_rate_inband', 
+'network_incoming_bytes_aggregate_rate', 'network_outgoing_bytes_aggregate_rate') 
 (Can be a regexp).
 
 =item B<--warning-*> B<--critical-*>
 
-Thresholds warning (Can be 'network-in', 'network-out',
-'network-packets-in', 'network-packets-out'.
+Thresholds warning (Can be 'network-inband-in-bytes-rate', 'network-inband-out-bytes-rate',
+'network-outband-in-bytes-rate', 'network-outband-out-bytes-rate'.
 
 =back
 

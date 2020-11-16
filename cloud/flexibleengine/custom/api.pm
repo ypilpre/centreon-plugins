@@ -309,6 +309,20 @@ sub api_list_ecs {
     return $servers_list;
 }
 
+sub api_list_ecs_flavor {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $flavor_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/flavors/detail',hostname => '');
+    return $flavor_list;
+}
+
+sub api_list_ecs_quota {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $quota_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/cloudservers/limits',hostname => '');
+    return $quota_list->{absolute};
+}
+
 sub api_list_ecs_tags {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
@@ -391,6 +405,13 @@ sub api_list_evs {
     return $list;
 }
 
+sub api_list_evs_quota {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://evs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v3/'.$self->{project_id}.'/os-quota-sets/'.$self->{project_id}.'?usage=True',hostname => '');
+    return $list->{quota_set};
+}
+
 sub api_list_nat {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://nat.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
@@ -404,6 +425,12 @@ sub api_list_elb {
     my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2.0/lbaas/loadbalancers',hostname => '');
     return $list;
 }
+
+sub api_list_elb_quota {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://elb.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $quota_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1.0/elbaas/quotas',hostname => '');
+    return $quota_list->{quotas};
 
 sub api_list_clb {
     my ($self, %options) = @_;

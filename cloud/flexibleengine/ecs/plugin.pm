@@ -32,6 +32,7 @@ sub new {
     $self->{version} = '1.0';
     %{$self->{modes}} = (
         'list-instances'   => 'cloud::flexibleengine::ecs::mode::listinstances',
+        'instances-type'   => 'cloud::flexibleengine::ecs::mode::instancestypes',
         'status'        => 'cloud::flexibleengine::ecs::mode::status',
         'discovery'      => 'cloud::flexibleengine::ecs::mode::discovery',
         'cpu'            => 'cloud::flexibleengine::ecs::mode::cpu',

@@ -56,7 +56,6 @@ sub long_output {
 sub custom_metric_calc {
     my ($self, %options) = @_;
     
-    $self->{result_values}->{timeframe} = $options{new_datas}->{$self->{instance} . '_timeframe'};
     $self->{result_values}->{value} = $options{new_datas}->{$self->{instance} . '_' . $options{extra_options}->{metric}};
     $self->{result_values}->{metric} = $options{extra_options}->{metric};
     return 0;
@@ -112,7 +111,7 @@ sub set_counters {
         my $entry = {
             label => $metrics_mapping{$metric}->{label},
             set => {
-                key_values => [ { name => $metric }, { name => 'timeframe' }, { name => 'display' } ],
+                key_values => [ { name => $metric }, { name => 'display' } ],
                 closure_custom_calc => $self->can('custom_metric_calc'),
                 closure_custom_calc_extra_options => { metric => $metric },
                 closure_custom_output => $self->can('custom_metric_output'),

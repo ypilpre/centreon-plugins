@@ -103,7 +103,7 @@ sub set_counters {
                 ],
             }
         },
-        { label => 'total-error', nlabel => 'ecs.instance.status.active.count',set => {
+        { label => 'total-error', nlabel => 'ecs.instance.status.error.count',set => {
                 key_values => [ { name => 'error' }  ],
                 output_template => "Error : %s",
                 perfdatas => [

@@ -28,7 +28,7 @@ use warnings;
 my %metrics_mapping = (
     'disk_read_bytes_rate' => {
         'output' => 'Disk Read Bytes Rate',
-        'label' => 'disk-write-bytes-rate',
+        'label' => 'disk-read-bytes-rate',
         'nlabel' => 'ecs.disk.bytes.read.bytespersecond',
         'unit' => 'B/s',
     },
@@ -247,13 +247,13 @@ Set the instance id (Required) (Can be multiple).
 =item B<--filter-metric>
 
 Filter metrics (Can be: 'disk_read_bytes_rate', 'disk_write_bytes_rate',
-'disk_write_requests_rate', 'disk_read_requests_rate') 
+'disk_write_ops', 'disk_read_ops') 
 (Can be a regexp).
 
 =item B<--warning-*> B<--critical-*>
 
 Thresholds warning (Can be 'disk-write-bytes-rate', 'disk-write-bytes-rate',
-'disk-write-requests-rate', 'disk-read-requests-rate').
+'disk-write-ops', 'disk-read-ops').
 
 =back
 
