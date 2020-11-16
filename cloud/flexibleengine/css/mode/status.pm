@@ -183,7 +183,7 @@ Check CSS Clusters instances Status.
 Example: 
 perl centreon_plugins.pl --plugin=cloud::flexibleengine::css::plugin  --mode=status --region='eu-west-0'
  --instance-id='28616721-d001-480b-99d0-deccacf414e7'
---critical-unhealthy-servers='1' --verbose
+--critical-unavailable='1' --verbose
 
 See 'https://docs.otc.t-systems.com/api/css/css_03_0018.html' for more informations.
 
