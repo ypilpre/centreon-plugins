@@ -24,7 +24,7 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-
+use Data::Dumper::Simple;
 my %metrics_mapping = (
     'm5_in_pps' => {
         'output' => 'Incoming Packets Rate',
@@ -55,13 +55,13 @@ my %metrics_mapping = (
 
 sub prefix_metric_output {
     my ($self, %options) = @_;
-    
+
     return "elb '" . $options{instance_value}->{display} . "' ";
 }
 
 sub prefix_statistics_output {
     my ($self, %options) = @_;
-    
+
     return "Statistic '" . $options{instance_value}->{display} . "' Metrics ";
 }
 
@@ -73,7 +73,7 @@ sub long_output {
 
 sub custom_metric_calc {
     my ($self, %options) = @_;
-    
+
     $self->{result_values}->{timeframe} = $options{new_datas}->{$self->{instance} . '_timeframe'};
     $self->{result_values}->{value} = $options{new_datas}->{$self->{instance} . '_' . $options{extra_options}->{metric}};
     $self->{result_values}->{value_per_sec} = $self->{result_values}->{value} / $self->{result_values}->{timeframe};
@@ -110,14 +110,14 @@ sub custom_metric_output {
 
         my ($value, $unit) = ($self->{result_values}->{value}, $metrics_mapping{$self->{result_values}->{metric}}->{unit});
         $msg = sprintf("%s: %.2f %s", $metrics_mapping{$self->{result_values}->{metric}}->{output}, $value, $unit);
-    
+
     return $msg;
 }
 
 
 sub set_counters {
     my ($self, %options) = @_;
-    
+
     $self->{maps_counters_type} = [
         { name => 'metrics', type => 3, cb_prefix_output => 'prefix_metric_output', cb_long_output => 'long_output',
           message_multiple => 'All traffic metrics are ok', indent_long_output => '    ',
@@ -148,9 +148,10 @@ sub new {
     my ($class, %options) = @_;
     my $self = $class->SUPER::new(package => __PACKAGE__, %options, force_new_perfdata => 1);
     bless $self, $class;
-    
+
     $options{options}->add_options(arguments => {
         "instance-id:s@"	        => { name => 'instance_id' },
+        "listener:s"	        => { name => 'listener' },
         "filter-metric:s"   => { name => 'filter_metric' },
         "filter:s"    => { name => 'filter' },
     });
@@ -176,7 +177,7 @@ sub check_options {
 
     $self->{ces_period} = defined($self->{option_results}->{period}) ? $self->{option_results}->{period} : 1;
     $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 3600;
-    
+
     $self->{ces_filter} = 'average';
     if (defined($self->{option_results}->{filter})) {
         $self->{ces_filter} =$self->{option_results}->{filter};
@@ -194,10 +195,25 @@ sub manage_selection {
     my ($self, %options) = @_;
 
     my %metric_results;
+
     foreach my $instance (@{$self->{ces_instance}}) {
+        my $dimension;
+        if (defined($self->{option_results}->{listener})){
+            $self->{loadbalancers} = $options{custom}->api_list_elb();
+            foreach  my $elb (@{$self->{loadbalancers}->{loadbalancers}}) {
+                foreach my $listener_child (@{$elb->{listeners}}){
+                   
+                    next if (!defined($listener_child->{id}));
+                    next if ($instance ne $listener_child->{id} );
+                    $dimension = [{name => 'lbaas_instance_id',value => $elb->{id}},{name => 'lbaas_listener_id',value => $instance}];
+                }
+            }
+        }else {
+            $dimension = [{name => 'lbaas_instance_id',value => $instance}];
+        }
         $metric_results{$instance} = $options{custom}->api_cloudeyes_get_metric(
             namespace => 'SYS.ELB',
-            dimensions => [ { name => 'lbaas_instance_id', value => $instance } ],
+            dimensions => $dimension,
             metrics => $self->{ces_metrics},
             filter => $self->{ces_filter},
             frame => $self->{ces_frame},
@@ -211,10 +227,10 @@ sub manage_selection {
                 $self->{metrics}->{$instance}->{display} = $instance;
                 $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{display} = $statistic;
                 $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{timeframe} = $self->{ces_frame};
-                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{$metric} = 
-                    defined($metric_results{$instance}->{$metric}->{lc($statistic)}) ? 
+                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{$metric} =
+                    defined($metric_results{$instance}->{$metric}->{lc($statistic)}) ?
                     $metric_results{$instance}->{$metric}->{lc($statistic)} : 0;
-            
+
         }
     }
     if (scalar(keys %{$self->{metrics}}) <= 0) {
@@ -231,7 +247,7 @@ __END__
 
 Check elb instances network metrics.
 
-Example: 
+Example:
 perl centreon_plugins.pl --plugin=cloud::flexibleengine::elb::plugin  --mode=traffic --region='eu-west-0'
  --instance-id='28616721-d001-480b-99d0-deccacf414e7' --filter-metric='Packets' --statistic='average'
 --critical-network-packets-out='10' --verbose
@@ -248,8 +264,8 @@ Set the instance id (Required) (Can be multiple).
 
 =item B<--filter-metric>
 
-Filter metrics (Can be: 'NetworkIn', 'NetworkOut', 
-'NetworkPacketsIn', 'NetworkPacketsOut') 
+Filter metrics (Can be: 'NetworkIn', 'NetworkOut',
+'NetworkPacketsIn', 'NetworkPacketsOut')
 (Can be a regexp).
 
 =item B<--warning-*> B<--critical-*>

@@ -38,6 +38,8 @@ sub new {
         'connections'     => 'cloud::flexibleengine::elb::mode::connections',
         'status'     => 'cloud::flexibleengine::elb::mode::status',
         'list-elb'  => 'cloud::flexibleengine::elb::mode::listinstances',
+        'list-listeners'  => 'cloud::flexibleengine::elb::mode::listlisteners',
+
     };
 
     $self->{custom_modes}{api} = 'cloud::flexibleengine::custom::api';

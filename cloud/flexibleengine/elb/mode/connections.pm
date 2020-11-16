@@ -113,6 +113,7 @@ sub new {
     
     $options{options}->add_options(arguments => {
         "instance-id:s@"	        => { name => 'instance_id' },
+        "listener:s"	        => { name => 'listener' },
         "filter-metric:s"   => { name => 'filter_metric' },
         "filter:s"    => { name => 'filter' },
     });
@@ -157,9 +158,24 @@ sub manage_selection {
 
     my %metric_results;
     foreach my $instance (@{$self->{ces_instance}}) {
+        my $dimension;
+        if (defined($self->{option_results}->{listener})){
+            $self->{loadbalancers} = $options{custom}->api_list_elb();
+            foreach  my $elb (@{$self->{loadbalancers}->{loadbalancers}}) {
+                foreach my $listener_child (@{$elb->{listeners}}){
+                   
+                    next if (!defined($listener_child->{id}));
+                    next if ($instance ne $listener_child->{id} );
+                    $dimension = [{name => 'lbaas_instance_id',value => $elb->{id}},{name => 'lbaas_listener_id',value => $instance}];
+                }
+            }
+        }else {
+            $dimension = [{name => 'lbaas_instance_id',value => $instance}];
+        }
+        
         $metric_results{$instance} = $options{custom}->api_cloudeyes_get_metric(
             namespace => 'SYS.ELB',
-            dimensions => [ { name => 'lbaas_instance_id', value => $instance } ],
+            dimensions => $dimension,
             metrics => $self->{ces_metrics},
             filter => $self->{ces_filter},
             frame => $self->{ces_frame},
