@@ -134,11 +134,11 @@ sub check_options {
         $self->{output}->option_exit();
     }
 
-    $self->{ces_period} = defined($self->{option_results}->{period}) ? $self->{option_results}->{period} : 1;
-    $self->{ces_frame} = defined($self->{option_results}->{frame}) ? $self->{option_results}->{frame} : 3600;
+    $self->{ces_period} = defined($self->{option_results}->{period}) && $self->{option_results}->{period} ne '' ? $self->{option_results}->{period} : 1;
+    $self->{ces_frame} = defined($self->{option_results}->{frame}) && $self->{option_results}->{frame} ne '' ? $self->{option_results}->{frame} :  3600;
 
     $self->{ces_filter} = 'average';
-    if (defined($self->{option_results}->{filter})) {
+    if (defined($self->{option_results}->{filter}) &&  $self->{option_results}->{filter} ne ''){
         $self->{ces_filter} =$self->{option_results}->{filter};
     }
 
