@@ -431,6 +431,7 @@ sub api_list_elb_quota {
     $self->{endpoint} = 'https://elb.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
     my $quota_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v1.0/elbaas/quotas',hostname => '');
     return $quota_list->{quotas};
+}
 
 sub api_list_clb {
     my ($self, %options) = @_;
