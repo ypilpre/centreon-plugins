@@ -152,16 +152,17 @@ sub set_counters {
 
         $self->{maps_counters}->{$family} = [];
         
-        foreach my $type (@{$family_mapping{$family}->{flavors}}) {
+        foreach my $flavor (@{$family_mapping{$family}->{flavors}}) {
             my $entry = {
-                label => $type, nlabel => 'ecs.instances.flavor.' . $family . '.' . $type . '.count', set => {
-                    key_values => [ { name => $type }  ],
-                    output_template => $type . ": %s",
+                label => $flavor, nlabel => 'ecs.instances.flavor.' . $family . '.' . $flavor . '.count', set => {
+                    key_values => [ { name => $flavor }  ],
+                    output_template => $flavor . ": %s",
                     perfdatas => [
-                        { value => $type , template => '%d', min => 0 },
+                        { value => $flavor , template => '%d', min => 0 },
                     ],
                 }
             };
+
             push @{$self->{maps_counters}->{$family}}, $entry;
         }
     }
