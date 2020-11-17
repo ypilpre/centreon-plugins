@@ -34,6 +34,7 @@ sub new {
         'list-instances'   => 'cloud::flexibleengine::ecs::mode::listinstances',
         'instances-flavors'   => 'cloud::flexibleengine::ecs::mode::instancesflavors',
         'status'        => 'cloud::flexibleengine::ecs::mode::status',
+        'health'        => 'cloud::flexibleengine::ecs::mode::health',
         'discovery'      => 'cloud::flexibleengine::ecs::mode::discovery',
         'cpu'            => 'cloud::flexibleengine::ecs::mode::cpu',
         'diskio'         => 'cloud::flexibleengine::ecs::mode::diskio',
