@@ -25,7 +25,6 @@ use base qw(centreon::plugins::templates::counter);
 use strict;
 use warnings;
 use centreon::plugins::templates::catalog_functions qw(catalog_status_threshold);
-use Data::Dumper::Simple;
 
 my %state_mapping =(
    '0' => 'pending',
