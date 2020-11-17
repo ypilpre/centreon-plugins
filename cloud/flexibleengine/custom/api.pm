@@ -375,6 +375,13 @@ sub api_list_rds {
     return $list;
 }
 
+sub api_list_rds_detail {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://rds.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v3/'.$self->{project_id}.'/instances?id='.$options{instance_id},hostname => '');
+    return $list;
+}
+
 sub api_list_rds_nodes {
   my ($self, %options) = @_;
 

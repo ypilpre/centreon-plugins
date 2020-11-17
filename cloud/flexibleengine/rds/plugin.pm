@@ -40,6 +40,7 @@ sub new {
         'list-nodes'      => 'cloud::flexibleengine::rds::mode::listnodes',
         'list-instances'  => 'cloud::flexibleengine::rds::mode::listinstances',
         'network'         => 'cloud::flexibleengine::rds::mode::network',
+        'health'         => 'cloud::flexibleengine::rds::mode::health',
         'queries'         => 'cloud::flexibleengine::rds::mode::queries',
         'storage'         => 'cloud::flexibleengine::rds::mode::storage',
         'transactions'    => 'cloud::flexibleengine::rds::mode::transactions',
