@@ -309,6 +309,13 @@ sub api_list_ecs {
     return $servers_list;
 }
 
+sub api_list_ecs_detail {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $server = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/servers/'.$options{server_id},hostname => '');
+    return $server;
+}
+
 sub api_list_ecs_flavor {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
