@@ -396,8 +396,40 @@ sub api_list_rds_nodes {
                 role =>  $node->{role},
                 name => $node->{name},
                 instance => $instance->{name},
-            
+
              };
+        }
+    }
+
+    return $nodes;
+}
+
+sub api_list_dds_nodes {
+  my ($self, %options) = @_;
+
+    my $nodes = [];
+    my $list_rds = $self->api_list_dds();
+    foreach my $instance (@{$list_rds->{instances}}){
+        foreach  my $group (@{$instance->{groups}}) {
+            foreach my $node (@{$group->{nodes}}){
+                push @{$nodes} , {
+                    id => $node->{id},
+                    status => $node->{status},
+                    availability_zone =>  $node->{availability_zone},
+                    role =>  $node->{role},
+                    name => $node->{name},
+                    private_ip => $node->{private_ip},
+                    public_ip => $node->{public_ip},
+                    port => $instance->{port},
+                    mode => $instance->{mode},
+                    ssl => 0+$instance->{ssl},
+                    engine => $instance->{engine},
+                    instance => $instance->{name},
+                    instance_id => $instance->{id},
+                    spec => $node->{spec_code},
+                    type => $group->{type},
+                };
+            }
         }
     }
 
@@ -482,28 +514,13 @@ sub api_list_cce{
     return $list;
 }
 
-
-
-
-
-sub api_get_servers_status {
-  my ($self, %options) = @_;
-
-    my $servers = [];
-    my $list_servers = $self->internal_api_list_servers();
-    foreach  my $server (@{$list_servers}) {
-        my $server_detail = $self->internal_api_detail_server(server_id=>$server->{id});
-        push @{$servers} , {
-            Id => $server_detail->{id},
-            Status => $server_detail->{status},
-            State => $server_detail->{'OS-EXT-STS:vm_state'},
-            Name => $server_detail->{name},
-            
-        };
-    }
-
-    return $servers;
+sub api_list_dds{
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://dds.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v3/'.$self->{project_id}.'/instances',hostname => '');
+    return $list;
 }
+
 
 sub api_cloudeye_list_metrics {
     my ($self, %options) = @_;
@@ -631,6 +648,9 @@ sub api_discovery {
     }
     if ($options{service} eq 'cce'){
         $api_result = $self->api_list_cce(%options)
+    }
+    if ($options{service} eq 'dds'){
+        $api_result = $self->api_list_dds_nodes(%options)
     }
     return $api_result;
 }
