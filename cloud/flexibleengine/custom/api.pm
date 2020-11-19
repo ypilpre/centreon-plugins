@@ -316,6 +316,8 @@ sub api_list_ecs_detail {
     return $server;
 }
 
+
+
 sub api_list_ecs_flavor {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
@@ -470,6 +472,13 @@ sub api_list_elb {
     $self->{endpoint} = 'https://elb.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
     my $list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2.0/lbaas/loadbalancers',hostname => '');
     return $list;
+}
+
+sub api_list_elb_detail {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://elb.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    my $server = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2.0/lbaas/loadbalancers/'.$options{elb_id},hostname => '');
+    return $server;
 }
 
 sub api_list_elb_quota {

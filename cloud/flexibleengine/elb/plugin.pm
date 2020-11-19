@@ -35,6 +35,7 @@ sub new {
         'traffic'     => 'cloud::flexibleengine::elb::mode::traffic',
         'httprequests'     => 'cloud::flexibleengine::elb::mode::httprequests',
         'health'     => 'cloud::flexibleengine::elb::mode::health',
+        'backendstatus'     => 'cloud::flexibleengine::elb::mode::backendstatus',
         'connections'     => 'cloud::flexibleengine::elb::mode::connections',
         'status'     => 'cloud::flexibleengine::elb::mode::status',
         'list-elb'  => 'cloud::flexibleengine::elb::mode::listinstances',

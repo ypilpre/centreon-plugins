@@ -24,158 +24,84 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
+use centreon::plugins::templates::catalog_functions qw(catalog_status_threshold);
 
-my %metrics_mapping = (
-    'm9_abnormal_servers' => {
-        'output' => 'Unhealthy Servers',
-        'label' => 'unhealthy-servers',
-        'nlabel' => 'elb.backend.unhealthy.count',
-        'unit' => ''
-    },
-    'ma_normal_servers' => {
-        'output' => 'Healthy Servers',
-        'label' => 'healthy-servers',
-        'nlabel' => 'elb.backend.healthy.count',
-        'unit' => '',
-    }
-
-);
-
-sub prefix_metric_output {
+sub custom_calc {
     my ($self, %options) = @_;
     
-    return "ELB '" . $options{instance_value}->{display} . "' ";
+    $self->{result_values}->{state} = $options{new_datas}->{$self->{instance} . '_state'};
+    return 0;
 }
 
-sub prefix_statistics_output {
+sub custom_output {
     my ($self, %options) = @_;
     
-    return "Statistic '" . $options{instance_value}->{display} . "' Metrics ";
+    return sprintf("state: '%s'",
+        $self->{result_values}->{state},
+    );
 }
-
-sub long_output {
-    my ($self, %options) = @_;
-
-    return "Checking ELB '" . $options{instance_value}->{display} . "' ";
-}
-
-
-sub custom_metric_output {
-    my ($self, %options) = @_;
-    my $msg = "";
-
-        my ($value, $unit) = ($self->{result_values}->{value}, $metrics_mapping{$self->{result_values}->{metric}}->{unit});
-        $msg = sprintf("%s: %d %s", $metrics_mapping{$self->{result_values}->{metric}}->{output}, $value, $unit);
-    
-    return $msg;
-}
-
 
 sub set_counters {
     my ($self, %options) = @_;
     
     $self->{maps_counters_type} = [
-        { name => 'metrics', type => 3, cb_prefix_output => 'prefix_metric_output', cb_long_output => 'long_output',
-          message_multiple => 'All Backend Heath metrics are ok', indent_long_output => '    ',
-            group => [
-                { name => 'statistics', display_long => 1, cb_prefix_output => 'prefix_statistics_output',
-                  message_multiple => 'All metrics are ok', type => 1, skipped_code => { -10 => 1 } },
-            ]
-        }
+        { name => 'health', type => 0 },
     ];
 
-    foreach my $metric (keys %metrics_mapping) {
-        my $entry = {
-            label => $metrics_mapping{$metric}->{label},
-            nlabel => $metrics_mapping{$metric}->{nlabel},
-            set => {
-                key_values => [ { name => $metric }, { name => 'display' } ],
-                output_template => $metrics_mapping{$metric}->{output} . ': %.2f',
-                perfdatas => [
-                    { value => $metric , template => '%.d', label_extra_instance => 1 }
-                ],
+    $self->{maps_counters}->{health} = [
+        { label => 'state', threshold => 0, set => {
+                key_values => [ { name => 'state' } ],
+                closure_custom_calc => $self->can('custom_calc'),
+                closure_custom_output => $self->can('custom_output'),
+                closure_custom_perfdata => sub { return 0; },
+                closure_custom_threshold_check => \&catalog_status_threshold,
             }
-        };
-        push @{$self->{maps_counters}->{statistics}}, $entry;
-    }
+        },
+    ];
 }
 
 sub new {
     my ($class, %options) = @_;
-    my $self = $class->SUPER::new(package => __PACKAGE__, %options, force_new_perfdata => 1);
+    my $self = $class->SUPER::new(package => __PACKAGE__, %options);
     bless $self, $class;
     
     $options{options}->add_options(arguments => {
-        "instance-id:s@"	        => { name => 'instance_id' },
-        "filter-metric:s"   => { name => 'filter_metric' },
-        "filter:s"    => { name => 'filter' },
+        "instance-id:s" => { name => 'instance_id' },
+        "critical-state:s"     => { name => 'critical_state', default => '%{state} =~ /^OFFLINE$/' },
+        "unknown-state:s"      => { name => 'unknown_state', default => '%{state} =~ /^NO_MONITOR$/' },
+        "warning-state:s"      => { name => 'warning_state', default => '' },
+        "ok-state:s"           => { name => 'ok_state', default => '%{state} =~ /^ONLINE$/' },
     });
-
+    
     return $self;
 }
+
 
 sub check_options {
     my ($self, %options) = @_;
     $self->SUPER::check_options(%options);
 
-
-    if (!defined($self->{option_results}->{instance_id}) || $self->{option_results}->{instance_id} eq '') {
-        $self->{output}->add_option_msg(short_msg => "Need to specify --instance-id option.");
-        $self->{output}->option_exit();
+    if (!defined($self->{option_results}->{instance_id})) {
+    $self->{output}->add_option_msg(short_msg => "Need to specify --instance-id <id>.");
+    $self->{output}->option_exit();
     }
 
-    foreach my $instance (@{$self->{option_results}->{instance_id}}) {
-        if ($instance ne '') {
-            push @{$self->{ces_instance}}, $instance;
-        }
-    }
+        $self->change_macros(macros => ['warning_state', 'critical_state', 'unknown_state', 'ok_state']);
 
-    $self->{ces_period} = defined($self->{option_results}->{period}) && $self->{option_results}->{period} ne '' ? $self->{option_results}->{period} : 1;
-    $self->{ces_frame} = defined($self->{option_results}->{frame}) && $self->{option_results}->{frame} ne '' ? $self->{option_results}->{frame} :  3600;
-    
-    $self->{ces_filter} = 'average';
-    if (defined($self->{option_results}->{filter}) &&  $self->{option_results}->{filter} ne ''){
-        $self->{ces_filter} =$self->{option_results}->{filter};
-    }
 
-    foreach my $metric (keys %metrics_mapping) {
-        next if (defined($self->{option_results}->{filter_metric}) && $self->{option_results}->{filter_metric} ne ''
-            && $metric !~ /$self->{option_results}->{filter_metric}/);
-
-        push @{$self->{ces_metrics}}, $metric;
-    }
 }
+
+
+
 
 sub manage_selection {
     my ($self, %options) = @_;
-
-    my %metric_results;
-    foreach my $instance (@{$self->{ces_instance}}) {
-        $metric_results{$instance} = $options{custom}->api_cloudeyes_get_metric(
-            namespace => 'SYS.ELB',
-            dimensions => [ { name => 'lbaas_instance_id', value => $instance } ],
-            metrics => $self->{ces_metrics},
-            filter => $self->{ces_filter},
-            frame => $self->{ces_frame},
-            period => $self->{ces_period},
-        );
-        foreach my $metric (@{$self->{ces_metrics}}) {
-                 my $statistic = $self->{ces_filter};
-                next if (!defined($metric_results{$instance}->{$metric}->{lc($statistic)}) &&
-                    !defined($self->{option_results}->{zeroed}));
-
-                $self->{metrics}->{$instance}->{display} = $instance;
-                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{display} = $statistic;
-                $self->{metrics}->{$instance}->{statistics}->{lc($statistic)}->{$metric} = 
-                    defined($metric_results{$instance}->{$metric}->{lc($statistic)}) ? 
-                    $metric_results{$instance}->{$metric}->{lc($statistic)} : 0;
-            
-        }
-    }
-    if (scalar(keys %{$self->{metrics}}) <= 0) {
-        $self->{output}->add_option_msg(short_msg => 'No metrics. Check your options or use --zeroed option to set 0 on undefined values');
-        $self->{output}->option_exit();
-    }
+    my $result = $options{custom}->api_list_elb_detail(elb_id => $self->{option_results}->{instance_id});
+    print Dumper($result->{loadbalancer});
+    $self->{health} = {
+            state => $result->{loadbalancer}->{'operating_status'},
+        };
+        
 }
 
 1;
@@ -184,31 +110,43 @@ __END__
 
 =head1 MODE
 
-Check ELB instances Backend Health metrics.
+Check ECS servers state.
 
 Example: 
-perl centreon_plugins.pl --plugin=cloud::flexibleengine::elb::plugin  --mode=health --region='eu-west-0'
- --instance-id='28616721-d001-480b-99d0-deccacf414e7' --filter-metric='unhealthy' --statistic='average'
---critical-unhealthy-servers='1' --verbose
+perl centreon_plugins.pl --plugin=cloud::flexibleengine::elb::health --mode=health --region='eu-west-0'
+--instance-id='2ae116a1-c5ed-4b4f-9d10-0bcce7f3425f'
 
-See 'https://docs.prod-cloud-ocb.orange-business.com/en-us/usermanual/elb/elb_ug_jk_0001.html' for more informations.
-
-Default statistic: 'average' / All statistics are valid.
+See 'https://docs.prod-cloud-ocb.orange-business.com/api/ecs/en-us_topic_0020212690.html' for more informations.
 
 =over 8
 
 =item B<--instance-id>
 
-Set the instance id (Required) (Can be multiple).
+Filter by instance id 
 
-=item B<--filter-metric>
+=item B<--warning-state>
 
-Filter metrics (Can be: 'unhealthy-servers', 'healthy-servers')
-(Can be a regexp).
+Set warning threshold for state (Default: '').
+Can used special variables like: %{state}, 
+%{state} came from 'operating_status' ELB value.
+Value for state can be 'ONLINE', 'OFFLINE', 'DEGRADED', 'DISABLED', or 'NO_MONITOR'.
 
-=item B<--warning-*> B<--critical-*>
 
-Thresholds warning (Can be: 'unhealthy-servers', 'healthy-servers').
+
+=item B<--critical-state>
+
+Set critical threshold for state (Default: '%{state} =~ /^OFFLINE$/').
+Can used special variables like: %{state}
+
+=item B<--unknown-state>
+
+Set unknown threshold for state (Default: '%{state} =~ /^NO_MONITOR$/').
+Can used special variables like: %{state}, %{summary}
+
+=item B<--ok-state>
+
+Set ok threshold for state (Default: '%{state} =~ /^ONLINE$/').
+Can used special variables like: %{state}
 
 =back
 
