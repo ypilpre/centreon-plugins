@@ -97,7 +97,6 @@ sub check_options {
 sub manage_selection {
     my ($self, %options) = @_;
     my $result = $options{custom}->api_list_elb_detail(elb_id => $self->{option_results}->{instance_id});
-    print Dumper($result->{loadbalancer});
     $self->{health} = {
             state => $result->{loadbalancer}->{'operating_status'},
         };
@@ -110,7 +109,7 @@ __END__
 
 =head1 MODE
 
-Check ECS servers state.
+Check ELB  state.
 
 Example: 
 perl centreon_plugins.pl --plugin=cloud::flexibleengine::elb::health --mode=health --region='eu-west-0'
