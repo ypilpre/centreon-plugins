@@ -27,7 +27,7 @@ use warnings;
 
 my %metrics_mapping = (
     'rds039_disk_util' => {
-        'std_metric' => 'storage_util',
+        'std_metric' => 'storage-utilization',
         'output' => 'Storage Utilization',
         'label' => 'storage-utilization',
         'nlabel' => 'rds.storage.utilization.percentage',
