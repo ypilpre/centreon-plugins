@@ -29,7 +29,10 @@ use JSON::XS;
 use URI::Encode;
 use Digest::MD5 qw(md5_hex);
 use Date::Parse qw(str2time);
-
+#Specific module for AK/SK Authentication
+use POSIX 'strftime';
+use Digest::SHA qw(hmac_sha256_hex);
+use URI::Split qw(uri_split uri_join);
 
 sub new {
     my ($class, %options) = @_;
@@ -244,6 +247,13 @@ sub get_access_secret_token{
 
 }
 
+
+sub sdk_api_request{
+    my ($self, %options) = @_;  
+    
+    my $content = $self->{http}->request(%options);
+}
+
 sub get_region {
     my ($self, %options) = @_;
 
@@ -305,6 +315,7 @@ sub request_api {
 sub api_list_ecs {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.'.prod-cloud-ocb.orange-business.com';
+    $self->{ur}
     my $servers_list = $self->request_api(method => 'GET', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/servers/detail',hostname => '');
     return $servers_list;
 }
