@@ -37,8 +37,6 @@ use URI::Escape qw(uri_escape uri_unescape);
 #Specific for OBS/S3 Access 
 use XML::Simple;
 
-use Data::Dumper::Simple;
-
 my %obc_service_map = (
    'ecs' => {'type' => 'compute'},
    'iam' => {'type' => 'identity'},
@@ -213,12 +211,10 @@ sub _sdk_signature_request {
       {
       $canonicalrequest.=lc sha256_hex("");
       }
-      #print Dumper($canonicalrequest);
       $string_to_sign.=$sdk_signature_algorithm."\n";
       $string_to_sign.=$zuludatetime."\n";
       $string_to_sign.=$scope."\n";
       $string_to_sign.=lc sha256_hex($canonicalrequest);
-      #print Dumper($string_to_sign);
       $signature=hmac_sha256_hex($string_to_sign,$self->_sdk_signing_key(date=>$zuludate,region=>lc$self->{option_results}->{region},service=>$service));
       $self->{http}->add_header(key => 'Content-Type', value =>'application/json');
       $self->{http}->add_header(key => 'X-OpenStack-Nova-API-Version', value => '2.26');

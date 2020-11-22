@@ -25,7 +25,6 @@ use base qw(centreon::plugins::mode);
 
 use strict;
 use warnings;
-use Data::Dumper::Simple;
 use XML::Simple;
 
 my %storage_map = (

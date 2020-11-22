@@ -24,7 +24,7 @@ use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-use Data::Dumper::Simple;
+
 my %metrics_mapping = (
     'm5_in_pps' => {
         'output' => 'Incoming Packets Rate',

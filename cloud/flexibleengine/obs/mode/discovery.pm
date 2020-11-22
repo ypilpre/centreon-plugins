@@ -25,7 +25,7 @@ use base qw(centreon::plugins::mode);
 use strict;
 use warnings;
 use JSON::XS;
-use Data::Dumper::Simple;
+
 my %storage_map = (
   'STANDARD' => {'label' => 'Standard'},
   'STANDARD_IA' => {'label' => 'Warm'},
@@ -71,7 +71,7 @@ sub run {
 
             }; 
         }
-    print Dumper($self->{buckets});
+
    foreach my $bucket (@{$self->{buckets}}) {
         my %obs;
         $obs{type} = "obs";
