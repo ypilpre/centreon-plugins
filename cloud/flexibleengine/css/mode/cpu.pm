@@ -18,7 +18,7 @@
 # limitations under the License.
 #
 
-package cloud::flexibleengine::css::mode::nodes;
+package cloud::flexibleengine::css::mode::cpu;
 
 use base qw(centreon::plugins::templates::counter);
 
@@ -31,12 +31,6 @@ my %metrics_mapping = (
         'label' => 'max-cpu-usage',
         'nlabel' => 'css.cpu.max.usage',
         'unit' => '%'
-    },
-    'max_cpu_time_of_jvm_process' => {
-        'output' => 'Max JVM CPU Usage',
-        'label' => 'max-cpu-jvm-usage',
-        'nlabel' => 'css.cpu.jvm.max.usage',
-        'unit' => '%',
     }
 
 );
@@ -90,9 +84,9 @@ sub set_counters {
             nlabel => $metrics_mapping{$metric}->{nlabel},
             set => {
                 key_values => [ { name => $metric }, { name => 'display' } ],
-                output_template => $metrics_mapping{$metric}->{output} . ': %d',
+                output_template => $metrics_mapping{$metric}->{output} . ': %d'.$metrics_mapping{$metric}->{unit},
                 perfdatas => [
-                    { value => $metric , template => '%d', label_extra_instance => 1 }
+                    { value => $metric , unit=> $metrics_mapping{$metric}->{unit},template => '%d', label_extra_instance => 1 }
                 ],
             }
         };
@@ -185,7 +179,7 @@ __END__
 
 =head1 MODE
 
-Check CSS Clusters instances CPU (Instance & JVM)
+Check CSS Clusters instances CPU
 
 Example: 
 perl centreon_plugins.pl --plugin=cloud::flexibleengine::css::plugin  --mode=cpu --region='eu-west-0'
@@ -204,12 +198,12 @@ Set the instance id (Required) (Can be multiple).
 
 =item B<--filter-metric>
 
-Filter metrics (Can be 'max-cpu-usage', 'max-cpu-jvm-usage')
+Filter metrics (Can be 'max-cpu-usage', )
 (Can be a regexp).
 
 =item B<--warning-*> B<--critical-*>
 
-Thresholds warning (Can be 'max-cpu-usage', 'max-cpu-jvm-usage')
+Thresholds warning (Can be 'max-cpu-usage')
 
 =back
 
