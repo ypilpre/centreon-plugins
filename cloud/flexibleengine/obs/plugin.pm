@@ -1,5 +1,5 @@
 #
-# Copyright 2020 Centreon (http://www.centreon.com/)
+# Copyright 2018 Centreon (http://www.centreon.com/)
 #
 # Centreon is a full-fledged industry-strength solution that meets
 # the needs in IT infrastructure and application monitoring for
@@ -18,35 +18,33 @@
 # limitations under the License.
 #
 
-package cloud::flexibleengine::eip::plugin;
+package cloud::flexibleengine::obs::plugin;
 
 use strict;
 use warnings;
 use base qw(centreon::plugins::script_custom);
 
 sub new {
-    my ( $class, %options ) = @_;
+    my ($class, %options) = @_;
     my $self = $class->SUPER::new(package => __PACKAGE__, %options);
     bless $self, $class;
 
-    $self->{version} = '0.1';
-    $self->{modes} = {
-        'discovery'       => 'cloud::flexibleengine::eip::mode::discovery',
-        'traffic'     => 'cloud::flexibleengine::eip::mode::traffic',
-        'list-eip'  => 'cloud::flexibleengine::eip::mode::listinstances',
-    };
+    $self->{version} = '1.0';
+    %{$self->{modes}} = (
+        'list-buckets'   => 'cloud::flexibleengine::obs::mode::listbuckets',
+        'discovery'      => 'cloud::flexibleengine::obs::mode::discovery',
+        'objects'      => 'cloud::flexibleengine::obs::mode::objects',
 
-    $self->{custom_modes}{token} = 'cloud::flexibleengine::custom::token';
+            );
     $self->{custom_modes}{aksk} = 'cloud::flexibleengine::custom::aksk';
     return $self;
 }
 
 1;
 
-__END__
 
 =head1 PLUGIN DESCRIPTION
 
-Check Flexible Engine Elastic IP Address (eip).
-
+Check Flexible Engine OBS (Object Storage Service) Resources.
+This plugin uses exclusively the AK/SK Mode
 =cut

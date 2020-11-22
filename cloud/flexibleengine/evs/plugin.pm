@@ -31,12 +31,13 @@ sub new {
 
     $self->{version} = '1.0';
     %{$self->{modes}} = (
-        'list-volume'   => 'cloud::flexibleengine::ecs::mode::listvolume',
+        'list-volumes'   => 'cloud::flexibleengine::evs::mode::listvolumes',
         'status' => 'cloud::flexibleengine::evs::mode::status',
         'discovery'      => 'cloud::flexibleengine::evs::mode::discovery',
         'diskio'         => 'cloud::flexibleengine::evs::mode::diskio',
             );
-    $self->{custom_modes}{api} = 'cloud::flexibleengine::custom::api';
+    $self->{custom_modes}{token} = 'cloud::flexibleengine::custom::token';
+    $self->{custom_modes}{aksk} = 'cloud::flexibleengine::custom::aksk';
     return $self;
 }
 

@@ -31,17 +31,18 @@ sub new {
 
     $self->{version} = '0.1';
     $self->{modes} = {
-        'discovery'       => 'cloud::flexibleengine::css::mode::discovery',
+        'discovery' => 'cloud::flexibleengine::css::mode::discovery',
         'nodes'     => 'cloud::flexibleengine::css::mode::nodes',
-        'indices'     => 'cloud::flexibleengine::css::mode::indices',
-        'cpu'     => 'cloud::flexibleengine::css::mode::cpu',
-        'storage'     => 'cloud::flexibleengine::css::mode::storage',
-        'memory'     => 'cloud::flexibleengine::css::mode::memory',
-        'status'     => 'cloud::flexibleengine::css::mode::status',
+        'indices'   => 'cloud::flexibleengine::css::mode::indices',
+        'cpu'       => 'cloud::flexibleengine::css::mode::cpu',
+        'storage'   => 'cloud::flexibleengine::css::mode::storage',
+        'memory'    => 'cloud::flexibleengine::css::mode::memory',
+        'status'    => 'cloud::flexibleengine::css::mode::status',
         'list-css'  => 'cloud::flexibleengine::css::mode::listinstances',
     };
 
-    $self->{custom_modes}{api} = 'cloud::flexibleengine::custom::api';
+    $self->{custom_modes}{token} = 'cloud::flexibleengine::custom::token';
+    $self->{custom_modes}{aksk} = 'cloud::flexibleengine::custom::aksk';
     return $self;
 }
 

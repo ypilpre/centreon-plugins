@@ -37,7 +37,8 @@ sub new {
         'list-nat'  => 'cloud::flexibleengine::nat::mode::listinstances',
     };
 
-    $self->{custom_modes}{api} = 'cloud::flexibleengine::custom::api';
+    $self->{custom_modes}{token} = 'cloud::flexibleengine::custom::token';
+    $self->{custom_modes}{aksk} = 'cloud::flexibleengine::custom::aksk';
     return $self;
 }
 

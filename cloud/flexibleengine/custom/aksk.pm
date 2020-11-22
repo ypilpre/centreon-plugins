@@ -33,9 +33,13 @@ use Date::Parse qw(str2time);
 use POSIX 'strftime';
 use Digest::SHA qw(hmac_sha256_hex sha256_hex hmac_sha256);
 use URI::Split qw(uri_split uri_join);
+use URI::Escape qw(uri_escape uri_unescape);
+#Specific for OBS/S3 Access 
+use XML::Simple;
+
 use Data::Dumper::Simple;
 
-my %service_map = (
+my %obc_service_map = (
    'ecs' => {'type' => 'compute'},
    'iam' => {'type' => 'identity'},
    'cce' => {'type' => 'ccev2.0'},
@@ -49,10 +53,15 @@ my %service_map = (
    'elb' => {'type' => 'network'},
    'vpc' => {'type' => 'vpc'},
    'css' => {'type' => 'css'},
+   'oss' => {'type' => 's3'},
+
 
 );
 
 my $default_endpoint_domain = "prod-cloud-ocb.orange-business.com";
+my $sdk_signature_algorithm='SDK-HMAC-SHA256';
+my $aws_signature_algorithm='AWS4-HMAC-SHA256';
+
 
 sub new {
     my ($class, %options) = @_;
@@ -106,7 +115,6 @@ sub check_options {
 
 
     $self->{project_id} = (defined($self->{option_results}->{project_id})) ? $self->{option_results}->{project_id} : undef;
-    $self->{domain_id} = (defined($self->{option_results}->{domain_id})) ? $self->{option_results}->{domain_id} : undef;
     $self->{access_key} = (defined($self->{option_results}->{access_key})) ? $self->{option_results}->{access_key} : undef;
     $self->{secret_key} = (defined($self->{option_results}->{secret_key})) ? $self->{option_results}->{secret_key} : undef;
     $self->{region} = (defined($self->{option_results}->{region})) ? $self->{option_results}->{region} : undef;
@@ -118,10 +126,6 @@ sub check_options {
         $self->{output}->option_exit();
     }
 
-    if (!defined($self->{project_id}) || $self->{domain_id} eq '') {
-        $self->{output}->add_option_msg(short_msg => "Need to specify --domain-id option.");
-        $self->{output}->option_exit();
-    }
 
     if (!defined($self->{access_key}) || $self->{access_key} eq '') {
         $self->{output}->add_option_msg(short_msg => "Need to specify --access-key option.");
@@ -146,7 +150,24 @@ sub check_options {
 sub _zulu_time {
     my $epochtime = time();
     my @datetime = gmtime($epochtime);
-    return (strftime('%Y%m%dT%H%M%SZ',@datetime),strftime('%Y%m%d',@datetime));
+    return (strftime('%Y%m%dT%H%M%SZ',@datetime),strftime('%Y%m%d',@datetime),strftime('%a, %d %B %Y %H:%M:%S GMT',@datetime));
+}
+
+
+sub _sort_query_string {
+        my ($self, %options) = @_;
+        return '' unless $options{query};
+        my @params;
+        for my $param ( split /&/, $options{query} ) {
+                my ( $key, $value ) = 
+                        map { tr/+/ /; uri_escape( uri_unescape( $_ ) ) } # escape all non-unreserved chars
+                        split /=/, $param;
+                push @params, [$key, (defined $value ? $value : '')];
+        }
+        return join '&',
+                map { join '=', @$_ }
+                sort { ( $a->[0] cmp $b->[0] ) || ( $a->[1] cmp $b->[1] ) }
+                @params;
 }
 
 sub _sdk_signing_key {
@@ -159,26 +180,27 @@ sub _sdk_signing_key {
     return  $kapp;
 }
 
+
 sub _sdk_signature_request {
       my ($self, %options) = @_;
-      my $signature_algorithm='SDK-HMAC-SHA256';
-      (my $_scheme, my $_auth, my $_path, my $_query, my $_frag) = uri_split($options{full_url}) ;
-      my $endpoint = $options{full_url} ;
-      my @uri_domains = split /([^:]*:\/\/)?([^\/]*)\.(.*)\.(.*)\.([^\/\.]+\.[^\/]+)/,$options{full_url};
-      my $host = $uri_domains[2].".".$uri_domains[3].".".$uri_domains[4].".".$uri_domains[5];
-      my $service = $service_map{$options{service}}->{type};
       my $canonicalrequest;
       my $string_to_sign;
       my $signature;
+      my $uri = URI->new($options{full_url});
+      my $host = $uri->host();
+      my $query = $uri->query();
+      my $path = $uri->path();
+      my $service = $obc_service_map{$options{service}}->{type};
       (my $zuludatetime, my $zuludate, my $expirationtime) = $self->_zulu_time();
-      my $scope =$zuludate."/".lc$self->{option_results}->{region}."/".$service_map{$options{service}}->{type}."/"."sdk_request";
+      my $scope =$zuludate."/".lc$self->{option_results}->{region}."/".$obc_service_map{$options{service}}->{type}."/sdk_request";
       $self->{http}->add_header(key => 'Host', value => $host);
       $self->{http}->add_header(key => 'X-Sdk-Date', value =>$zuludatetime );
       $canonicalrequest= $options{method}."\n";
-      $canonicalrequest.=  $_path."/\n";
-      $canonicalrequest.=  (defined($_query))?uri_encode(uri_encode($_query))."\n":"\n";
+      $canonicalrequest.=  $path."/\n";
+      $canonicalrequest.=  $self->_sort_query_string(query=>$query);
+      $canonicalrequest.="\n";
       my @sorted_map=();
-      foreach ( sort keys %{$self->{http}->{add_headers}}){
+      foreach ( sort {lc $a cmp lc $b} keys %{$self->{http}->{add_headers}}){
           $canonicalrequest.=lc ($_).":".$self->{http}->{add_headers}{$_} ."\n";
           push @sorted_map, $_;
       }
@@ -192,27 +214,131 @@ sub _sdk_signature_request {
       $canonicalrequest.=lc sha256_hex("");
       }
       #print Dumper($canonicalrequest);
-      $string_to_sign.=$signature_algorithm."\n";
+      $string_to_sign.=$sdk_signature_algorithm."\n";
       $string_to_sign.=$zuludatetime."\n";
       $string_to_sign.=$scope."\n";
       $string_to_sign.=lc sha256_hex($canonicalrequest);
       #print Dumper($string_to_sign);
       $signature=hmac_sha256_hex($string_to_sign,$self->_sdk_signing_key(date=>$zuludate,region=>lc$self->{option_results}->{region},service=>$service));
-      #$signature=hmac_sha256_hex($string_to_sign,$self->{secret_key});
-      #$self->{http}->add_header(key => 'X-Sdk-Signature', value =>$signature );
       $self->{http}->add_header(key => 'Content-Type', value =>'application/json');
       $self->{http}->add_header(key => 'X-OpenStack-Nova-API-Version', value => '2.26');
       $self->{http}->add_header(key => 'Accept', value =>'application/json');
-      $self->{http}->add_header(key => 'X-Domain-Id', value =>$self->{option_results}->{domain_id} );
-      $self->{http}->add_header(key => 'X-Project-Id', value => $self->{option_results}->{project_id});
       $self->{http}->add_header(key => 'Authorization', value =>
-      #$signature_algorithm." Access=".$self->{access_key}.", SignedHeaders=".$signed_headers.", Signature=".$signature );
-      $signature_algorithm." Credential=".$self->{access_key}."/".$scope.", SignedHeaders=".$signed_headers.", Signature=".$signature );
+      $sdk_signature_algorithm." Credential=".$self->{access_key}."/".$scope.", SignedHeaders=".$signed_headers.", Signature=".$signature );
 
+}
+
+sub _aws_signing_key {
+    my ($self, %options) = @_;
+    my $ksecret = "AWS4".$self->{secret_key};
+    my $kdate = hmac_sha256($options{date},$ksecret);
+    my $kregion = hmac_sha256($options{region},$kdate);
+    my $kservice = hmac_sha256("s3",$kregion);
+    my $kapp = hmac_sha256("aws4_request",$kservice);
+    return  $kapp;
 }
 
 
 
+
+
+
+sub _aws_signature_request {
+      my ($self, %options) = @_;
+      my $canonicalrequest;
+      my $string_to_sign;
+      my $signature;
+      my $payload_hash;
+       if (defined($options{payload})) {
+           $payload_hash=lc sha256_hex($options{payload});
+        }else{
+           $payload_hash=lc sha256_hex("");
+        }
+      my $uri = URI->new($options{full_url});
+      my $host = $uri->host();
+      my $query = $uri->query();
+      my $path = $uri->path();
+      my $service = "$obc_service_map{$options{service}}->{type}";
+      (my $zuludatetime, my $zuludate, my $zulu_extended) = $self->_zulu_time();
+      my $scope =$zuludate."/".lc$self->{option_results}->{region}."/".$obc_service_map{$options{service}}->{type}."/aws4_request";
+      $self->{http}->add_header(key => 'Host', value => $host);
+      $self->{http}->add_header(key => 'x-Amz-Content-Sha256', value => $payload_hash );
+      $self->{http}->add_header(key => 'X-Amz-Date', value =>$zuludatetime );
+      $canonicalrequest= $options{method}."\n";
+      $canonicalrequest.=  $path."/\n";
+      $canonicalrequest.=  $self->_sort_query_string(query=>$query);
+      $canonicalrequest.= "\n";
+      my @sorted_map=();
+      foreach ( sort {lc $a cmp lc $b} keys %{$self->{http}->{add_headers}}){
+          $canonicalrequest.=lc ($_).":".$self->{http}->{add_headers}{$_} ."\n";
+          push @sorted_map, $_;
+      }
+      my $signed_headers=lc join(';' , @sorted_map);
+      $canonicalrequest.="\n";
+      $canonicalrequest.=lc $signed_headers."\n";
+      $canonicalrequest.=$payload_hash;
+      $string_to_sign.=$aws_signature_algorithm."\n";
+      $string_to_sign.=$zuludatetime."\n";
+      $string_to_sign.=$scope."\n";
+      $string_to_sign.=lc sha256_hex($canonicalrequest);
+      $signature=hmac_sha256_hex($string_to_sign,$self->_aws_signing_key(date=>$zuludate,region=>lc$self->{option_results}->{region},service=>$service));
+      $self->{http}->add_header(key => 'Authorization', value =>
+      $aws_signature_algorithm." Credential=".$self->{access_key}."/".$scope.", SignedHeaders=".$signed_headers.", Signature=".$signature );
+
+}
+
+sub request_aws {
+    my ($self, %options) = @_;
+
+
+    $self->http_settings();
+    $self->_aws_signature_request(method=>$options{method},payload=>$options{query_form_post},service=>$options{service},full_url=>$options{full_url});
+    my $content = $self->{http}->request(%options);
+    my @bucket;
+    my $decoded;
+    if ($options{method} ne 'HEAD') {
+
+    if ($self->{http}->get_code() != 200) {
+        eval {
+            $decoded = XMLin($content, ForceArray => [], KeyAttr => []);
+       };
+       if ($@) {
+           $self->{output}->output_add(long_msg => $content, debug => 1);
+          $self->{output}->add_option_msg(short_msg => "Cannot decode xml response: $@");
+           $self->{output}->option_exit();
+       }
+       if (defined($decoded->{error})) {
+           $self->{output}->output_add(long_msg => "Error message : " . $decoded->{error}->{message}, debug => 1);
+           $self->{output}->add_option_msg(short_msg => "Endpoint API return error code '" . $decoded->{error}->{code} . "' (add --debug option for detailed message)");
+           $self->{output}->option_exit();
+       }
+    }else{
+        eval {
+            $decoded = XMLin($content, ForceArray => [], KeyAttr => []);
+       };
+       if ($@) {
+        $self->{output}->output_add(long_msg => $content, debug => 1);
+        $self->{output}->add_option_msg(short_msg => "Cannot decode xml response: $@");
+        $self->{output}->option_exit();
+    }
+    }
+    }
+    else{
+        my $storage_class=$self->{http}->get_header(name=>'x-default-storage-class');
+        my $storage_region= $self->{http}->get_header(name=>'x-amz-bucket-region');
+        $self->{http}->{add_headers}=undef;
+        $options{full_url}=undef;
+        return ($storage_class,$storage_region);
+
+    }
+    $self->{http}->{add_headers}=undef;
+    $options{full_url}=undef;
+
+    #Clear HTTP Headers before creating a new signed request
+    return $decoded;
+
+
+}
 
 sub request_api {
     my ($self, %options) = @_;
@@ -222,19 +348,30 @@ sub request_api {
     $self->_sdk_signature_request(method=>$options{method},payload=>$options{query_form_post},service=>$options{service},full_url=>$options{full_url});
     
     my $content = $self->{http}->request(%options);
+    if ($self->{http}->get_code() != 200) {
+        my $decoded;
+        eval {
+            $decoded = JSON::XS->new->utf8->decode($content);
+        };
+        if ($@) {
+            $self->{output}->output_add(long_msg => $content, debug => 1);
+            $self->{output}->add_option_msg(short_msg => "Cannot decode json response: $@");
+            $self->{output}->option_exit();
+        }
+        if (defined($decoded->{error})) {
+            $self->{output}->output_add(long_msg => "Error message : " . $decoded->{error}->{message}, debug => 1);
+            $self->{output}->add_option_msg(short_msg => "Endpoint API return error code '" . $decoded->{error}->{code} . "' (add --debug option for detailed message)");
+            $self->{output}->option_exit();
+        }
+    }
 
     my $decoded;
-    eval {
-        $decoded = JSON::XS->new->utf8->decode($content);
-    };
-    if ($@) {
+        eval {
+            $decoded = JSON::XS->new->utf8->decode($content);
+       };
+       if ($@) {
         $self->{output}->output_add(long_msg => $content, debug => 1);
         $self->{output}->add_option_msg(short_msg => "Cannot decode json response: $@");
-        $self->{output}->option_exit();
-    }
-    if (defined($decoded->{error})) {
-        $self->{output}->output_add(long_msg => "Error message : " . $decoded->{error}->{message}, debug => 1);
-        $self->{output}->add_option_msg(short_msg => "Endpoint API return error code '" . $decoded->{error}->{code} . "' (add --debug option for detailed message)");
         $self->{output}->option_exit();
     }
     #Clear HTTP Headers before creating a new signed request
@@ -271,14 +408,14 @@ sub http_settings {
 sub api_list_ecs {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.".".$self->{endpoint_domain};
-    my $servers_list = $self->request_api(method => 'GET', service=>'compute', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/servers/detail',hostname => '');
+    my $servers_list = $self->request_api(method => 'GET', service=>'ecs', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/servers/detail',hostname => '');
     return $servers_list;
 }
 
 sub api_list_ecs_detail {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.".".$self->{endpoint_domain};
-    my $server = $self->request_api(method => 'GET', service=>'compute', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/servers/'.$options{server_id},hostname => '');
+    my $server = $self->request_api(method => 'GET', service=>'ecs', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/servers/'.$options{server_id},hostname => '');
     return $server;
 }
 
@@ -287,21 +424,21 @@ sub api_list_ecs_detail {
 sub api_list_ecs_flavor {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.".".$self->{endpoint_domain};
-    my $flavor_list = $self->request_api(method => 'GET', service=>'compute', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/flavors/detail',hostname => '');
+    my $flavor_list = $self->request_api(method => 'GET', service=>'ecs', full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/flavors/detail',hostname => '');
     return $flavor_list;
 }
 
 sub api_list_ecs_quota {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.".".$self->{endpoint_domain};
-    my $quota_list = $self->request_api(method => 'GET',service=>'compute', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/cloudservers/limits',hostname => '');
+    my $quota_list = $self->request_api(method => 'GET',service=>'ecs', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/cloudservers/limits',hostname => '');
     return $quota_list->{absolute};
 }
 
 sub api_list_ecs_tags {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://ecs.'.$self->{region}.".".$self->{endpoint_domain};
-    my $ecs_tags_list = $self->request_api(method => 'GET', service=>'compute',full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/servers/'.$options{server_id}.'/tags',hostname => '');
+    my $ecs_tags_list = $self->request_api(method => 'GET', service=>'ecs',full_url =>$self->{endpoint}.'/v2.1/'.$self->{project_id}.'/servers/'.$options{server_id}.'/tags',hostname => '');
     my $ecs_tags;
     foreach my $tag (@{$ecs_tags_list->{tags}}) {
         my @tag_content=split /=/,$tag;
@@ -460,28 +597,28 @@ sub api_list_clb {
     return $list;
 }
 
-sub api_list_dcs{
+sub api_list_dcs {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://dcs.'.$self->{region}.".".$self->{endpoint_domain};
     my $list = $self->request_api(method => 'GET',service=>'dcs', full_url =>$self->{endpoint}.'/v1.0/'.$self->{project_id}.'/instances',hostname => '');
     return $list;
 }
 
-sub api_list_eip{
+sub api_list_eip {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://vpc.'.$self->{region}.".".$self->{endpoint_domain};
     my $list = $self->request_api(method => 'GET',service=>'vpc', full_url =>$self->{endpoint}.'/v1/'.$self->{project_id}.'/publicips',hostname => '');
     return $list;
 }
 
-sub api_list_sfs{
+sub api_list_sfs {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://sfs.'.$self->{region}.".".$self->{endpoint_domain};
     my $list = $self->request_api(method => 'GET', service=>'sfs',full_url =>$self->{endpoint}.'/v2/'.$self->{project_id}.'/shares/detail',hostname => '');
     return $list;
 }
 
-sub api_list_cce{
+sub api_list_cce {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://cce.'.$self->{region}.".".$self->{endpoint_domain};
     my $list = $self->request_api(method => 'GET', service=>'cce',full_url =>$self->{endpoint}.'/api/v3/projects/'.$self->{project_id}.'/clusters',hostname => '');
@@ -587,6 +724,28 @@ sub api_cloudeyes_get_metric {
     return $metric_results;
 }
 
+
+sub api_list_obs_buckets {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://oss.'.$self->{endpoint_domain};
+    my $list = $self->request_aws(method => 'GET', service=>'oss',full_url =>$self->{endpoint}.'',hostname => '');
+    return $list;
+}
+
+sub api_obs_bucket_head {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://'.$options{bucket_name}.'.oss.'.$self->{endpoint_domain};
+    (my $storage_class, my $storage_region) = $self->request_aws(method => 'HEAD', service=>'oss',full_url =>$self->{endpoint}.'',hostname => '');
+    return ($storage_class, $storage_region);
+}
+
+sub api_get_obs_bucket_info {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://'.$options{bucket_name}.'.oss.'.$self->{endpoint_domain};
+    my $list =  $self->request_aws(method => 'GET', service=>'oss',full_url =>defined($options{action})?$self->{endpoint}.'?'.$options{action}:$self->{endpoint},hostname => '');
+    return $list;
+}
+
 sub api_discovery {
     my ($self, %options) = @_;
     my $api_result = {};
@@ -642,7 +801,8 @@ sub discovery {
 
 =head1 MODE
 
-Flexible Engine
+Flexible Engine API Access Key/Secret Key Mode
+More Doc at 'https://docs.prod-cloud-ocb.orange-business.com/api/ecs/en-us_topic_0124306062.html'
 
 =over 6
 
@@ -654,13 +814,13 @@ Set Flexible Engine Domain ID.
 
 Set Flexible Engine Project ID.
 
-=item B<--username>
+=item B<--access-key>
 
-Set Flexible Engine Username.
+Set Flexible Engine Access Key.
 
-=item B<--password>
+=item B<--secret-key>
 
-Set Flexible Engine Password.
+Set Flexible Engine Secret Key.
 
 =item B<--region>
 

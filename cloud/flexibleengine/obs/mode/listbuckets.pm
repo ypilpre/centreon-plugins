@@ -18,14 +18,21 @@
 # limitations under the License.
 #
 
-package cloud::flexibleengine::ecs::mode::listinstances;
+package cloud::flexibleengine::obs::mode::listbuckets;
 
 use base qw(centreon::plugins::mode);
 
 
 use strict;
 use warnings;
+use Data::Dumper::Simple;
+use XML::Simple;
 
+my %storage_map = (
+  'STANDARD' => {'label' => 'Standard'},
+  'STANDARD_IA' => {'label' => 'Warm'},
+  'GLACIER' => {'label' => 'Cold'},
+);
  
 sub new {
     my ($class, %options) = @_;
@@ -44,8 +51,19 @@ sub check_options {
 
 sub manage_selection {
     my ($self, %options) = @_;
-    $self->{servers} = $options{custom}->api_list_ecs();
+    $self->{buckets_list} = $options{custom}->api_list_obs_buckets();
+    foreach  (@{$self->{buckets_list}->{Buckets}->{Bucket}}) {
+    (my $storage_class, my $storage_region) = $options{custom}->api_obs_bucket_head(bucket_name=>$_->{Name});
+    my $versioning = $options{custom}->api_get_obs_bucket_info(bucket_name=>$_->{Name},action=>'versioning');
 
+        push @{$self->{buckets}} , 
+        {name=>$_->{Name},
+        storage_class=>$storage_map{$storage_class}->{label},
+        storage_region=>$storage_region,
+        versioning=>(defined($versioning->{Status}))?$versioning->{Status}:"Disabled",
+
+        }; 
+        }
 }
 
 
@@ -53,13 +71,18 @@ sub run {
     my ($self, %options) = @_;
 
     $self->manage_selection(%options);
-    foreach  (@{$self->{servers}->{servers}}) {
+    foreach  (@{$self->{buckets}}) {
         $self->{output}->output_add(
-            long_msg => sprintf("[id = %s][name= %s][availabilityzone = %s][status = %s]",
-             $_->{id},$_->{name}, $_->{'OS-EXT-AZ:availability_zone'}, $_->{status}));
+            long_msg => sprintf("[name= %s][class= %s][versioning= %s][region= %s]",
+         $_->{name},
+         $_->{storage_class},
+         $_->{versioning},
+        $_->{storage_region},
+
+         ));
     }
     $self->{output}->output_add(severity => 'OK',
-                                short_msg => 'List servers:');
+                                short_msg => 'List buckets:');
     $self->{output}->display(nolabel => 1, force_ignore_perfdata => 1, force_long_output => 1);
     $self->{output}->exit();
 }
@@ -67,19 +90,20 @@ sub run {
 sub disco_format {
     my ($self, %options) = @_;
 
-    $self->{output}->add_disco_format(elements => ['id', 'name', 'availabilityzone','status']);
+    $self->{output}->add_disco_format(elements => ['name', 'storage_class','versioning','region']);
 }
 
 sub disco_show {
     my ($self, %options) = @_;
 
     $self->manage_selection(%options);
-    foreach  (@{$self->{servers}->{servers}}) {
+    foreach  (@{$self->{buckets}}) {
         $self->{output}->add_disco_entry(
-            instance_id => $_->{id},
-            name => $_->{name},
-            availabilityzone => $_->{'OS-EXT-AZ:availability_zone'},
-            status => $_->{status}
+        name => $_->{name},
+        class => $_->{storage_class},
+        region => $_->{storage_region},
+        versioning => $_->{versioning},
+
         );
     }
 }
@@ -90,7 +114,7 @@ __END__
 
 =head1 MODE
 
-List ECS servers.
+List OBS Buckets.
 
 =over 8
 

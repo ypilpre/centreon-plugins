@@ -18,21 +18,21 @@
 # limitations under the License.
 #
 
-package cloud::flexibleengine::dds::mode::listinstances;
+package cloud::flexibleengine::evs::mode::listvolumes;
 
 use base qw(centreon::plugins::mode);
+
 
 use strict;
 use warnings;
 
+ 
 sub new {
     my ($class, %options) = @_;
     my $self = $class->SUPER::new(package => __PACKAGE__, %options);
     bless $self, $class;
     
-    $options{options}->add_options(arguments =>
-                                {
-                                });
+    $options{options}->add_options(arguments => {});
 
     return $self;
 }
@@ -44,42 +44,53 @@ sub check_options {
 
 sub manage_selection {
     my ($self, %options) = @_;
+    $self->{volumes} = $options{custom}->api_list_evs();
 
-    $self->{instances} = $options{custom}->api_list_dds();
 }
+
 
 sub run {
     my ($self, %options) = @_;
 
     $self->manage_selection(%options);
-    foreach (@{$self->{instances}->{instances}}) {
-        $self->{output}->output_add(long_msg => sprintf("[id = %s][name = %s][engine = %s][mode = %s][status = %s]",
-            $_->{id}, $_->{name}, $_->{engine}, $_->{mode}, $_->{status}));
+    foreach  (@{$self->{volumes}->{volumes}}) {
+        $self->{output}->output_add(
+            long_msg => sprintf("[id = %s][name= %s][size= %s][volumetype= %s][encrypted= %s][availabilityzone = %s][replication_status = %s][status = %s]",
+         $_->{id},
+         $_->{name},
+         $_->{size},
+         $_->{volume_type},
+         $_->{encrypted},
+         $_->{availability_zone},
+        $_->{replication_status},
+         $_->{status},));
     }
-    
     $self->{output}->output_add(severity => 'OK',
-                                short_msg => 'List DDS instances:');
+                                short_msg => 'List volume:');
     $self->{output}->display(nolabel => 1, force_ignore_perfdata => 1, force_long_output => 1);
     $self->{output}->exit();
 }
 
 sub disco_format {
     my ($self, %options) = @_;
-    
-    $self->{output}->add_disco_format(elements => ['id','name','engine', 'mode', 'status']);
+
+    $self->{output}->add_disco_format(elements => ['id', 'name', 'size','volumetype','encrypted','availabilityzone','replication_status','status']);
 }
 
 sub disco_show {
     my ($self, %options) = @_;
 
     $self->manage_selection(%options);
-    foreach  (@{$self->{instances}->{instances}}) {
+    foreach  (@{$self->{volumes}->{volumes}}) {
         $self->{output}->add_disco_entry(
         id => $_->{id},
         name => $_->{name},
         status => $_->{status},
-        mode => $_->{mode},
-        engine => $_->{type},
+        size => $_->{size},
+        volume_type => $_->{volume_type},
+        encrypted => $_->{encrypted},
+        availability_zone => $_->{availability_zone},
+        replication_status => $_->{replication_status},
         );
     }
 }
@@ -90,11 +101,10 @@ __END__
 
 =head1 MODE
 
-List dds instances.
+List ECS servers.
 
 =over 8
 
 =back
 
 =cut
-    

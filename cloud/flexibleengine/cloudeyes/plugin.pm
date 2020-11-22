@@ -37,7 +37,9 @@ sub new {
         'list-metrics'  => 'cloud::flexibleengine::cloudeyes::mode::listmetrics',
     );
 
-    $self->{custom_modes}{api} = 'cloud::flexibleengine::custom::api';
+    $self->{custom_modes}{token} = 'cloud::flexibleengine::custom::token';
+    $self->{custom_modes}{aksk} = 'cloud::flexibleengine::custom::aksk';
+
     return $self;
 }
 
