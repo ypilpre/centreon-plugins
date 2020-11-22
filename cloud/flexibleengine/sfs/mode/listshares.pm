@@ -56,8 +56,8 @@ sub run {
     foreach  (@{$self->{shares}->{shares}}) {
         
         $self->{output}->output_add(
-            long_msg => sprintf("[id = %s][name= %s][availabilityzone = %s][status = %s]",
-             $_->{id},$_->{name}, $_->{availabilityzone}, $_->{status}));
+            long_msg => sprintf("[id = %s][name= %s][availability_zone = %s][protocol=%s][status = %s]",
+             $_->{id},$_->{name}, $_->{availability_zone}, $_->{share_proto},$_->{status}));
     }
     $self->{output}->output_add(severity => 'OK',
                                 short_msg => 'List Shares:');
@@ -68,7 +68,7 @@ sub run {
 sub disco_format {
     my ($self, %options) = @_;
 
-    $self->{output}->add_disco_format(elements => ['id', 'name', 'availabilityzone' ,'status']);
+    $self->{output}->add_disco_format(elements => ['id', 'name', 'availability_zone' ,'protocol','status']);
 }
 
 sub disco_show {
@@ -79,7 +79,9 @@ sub disco_show {
         $self->{output}->add_disco_entry(
             instance_id => $_->{id},
             name => $_->{name},
-            availabilityzone => $_->{availabilityzone},
+            availabilityzone => $_->{availability_zone},
+            protocol => $_->{share_proto},
+
             status => $_->{status}
         );
     }
