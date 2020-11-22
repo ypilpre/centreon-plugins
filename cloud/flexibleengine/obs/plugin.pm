@@ -33,7 +33,9 @@ sub new {
     %{$self->{modes}} = (
         'list-buckets'   => 'cloud::flexibleengine::obs::mode::listbuckets',
         'discovery'      => 'cloud::flexibleengine::obs::mode::discovery',
-        'objects'      => 'cloud::flexibleengine::obs::mode::objects',
+        'bucketsize'      => 'cloud::flexibleengine::obs::mode::bucketsize',
+        'traffic'      => 'cloud::flexibleengine::obs::mode::traffic',
+        'requests'      => 'cloud::flexibleengine::obs::mode::requests',
 
             );
     $self->{custom_modes}{aksk} = 'cloud::flexibleengine::custom::aksk';

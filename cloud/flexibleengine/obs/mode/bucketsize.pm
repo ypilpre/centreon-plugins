@@ -18,19 +18,25 @@
 # limitations under the License.
 #
 
-package cloud::flexibleengine::obs::mode::objects;
+package cloud::flexibleengine::obs::mode::bucketsize;
 
 use base qw(centreon::plugins::templates::counter);
 
 use strict;
 use warnings;
-use Data::Dumper::Simple;
+
 my %metrics_mapping = (
     'ObjectNumber' => {
         'output' => 'Objects Count',
         'label' => 'objects-count',
         'nlabel' => 'obs.objects.count',
         'unit' => ''
+    },
+    'Size' => {
+        'output' => 'Objects Size',
+        'label' => 'objects-size',
+        'nlabel' => 'obs.objects.size',
+        'unit' => 'B'
     }
 );
 
@@ -56,7 +62,6 @@ sub long_output {
 sub custom_metric_output {
     my ($self, %options) = @_;
     my $msg = "";
-
         my ($value, $unit) = ($self->{result_values}->{value}, $metrics_mapping{$self->{result_values}->{metric}}->{unit});
         $msg = sprintf("%s: %d %s", $metrics_mapping{$self->{result_values}->{metric}}->{output}, $value, $unit);
     
@@ -68,12 +73,8 @@ sub set_counters {
     my ($self, %options) = @_;
     
     $self->{maps_counters_type} = [
-        { name => 'metrics', type => 3, cb_prefix_output => 'prefix_metric_output', cb_long_output => 'long_output',
-          message_multiple => 'All Objects  are ok', indent_long_output => '    ',
-            group => [
-                { name => 'statistics', display_long => 1, cb_prefix_output => 'prefix_statistics_output',
-                  message_multiple => 'All metrics are ok', type => 1, skipped_code => { -10 => 1 } },
-            ]
+        { name => 'metrics', type => 1, cb_prefix_output => 'prefix_metric_output', cb_long_output => 'long_output',
+          message_multiple => 'All Buckets Objects  are ok', indent_long_output => '    ',
         }
     ];
 
@@ -83,13 +84,14 @@ sub set_counters {
             nlabel => $metrics_mapping{$metric}->{nlabel},
             set => {
                 key_values => [ { name => $metric }, { name => 'display' } ],
-                output_template => $metrics_mapping{$metric}->{output} . ': %d',
+                output_template => $metrics_mapping{$metric}->{output} . ': %d '.$metrics_mapping{$metric}->{unit},
                 perfdatas => [
-                    { value => $metric , template => '%d', label_extra_instance => 1 }
+                    { value => $metric , unit =>$metrics_mapping{$metric}->{unit},  template => '%d', label_extra_instance => 1 }
                 ],
             }
         };
-        push @{$self->{maps_counters}->{statistics}}, $entry;
+        push @{$self->{maps_counters}->{metrics}}, $entry;
+
     }
 }
 
@@ -119,7 +121,7 @@ sub check_options {
 
     foreach my $instance (@{$self->{option_results}->{bucket_name}}) {
         if ($instance ne '') {
-            push @{$self->{ces_instance}}, $instance;
+            push @{$self->{obs_instance}}, $instance;
         }
     }
 
@@ -127,7 +129,7 @@ sub check_options {
         next if (defined($self->{option_results}->{filter_metric}) && $self->{option_results}->{filter_metric} ne ''
             && $metric !~ /$self->{option_results}->{filter_metric}/);
 
-        push @{$self->{metrics}}, $metric;
+        push @{$self->{obs_metrics}}, $metric;
     }
 }
 
@@ -135,24 +137,22 @@ sub manage_selection {
     my ($self, %options) = @_;
 
     my %metric_results;
-    foreach my $instance (@{$self->{ces_instance}}) {
+    foreach my $instance (@{$self->{obs_instance}}) {
        
-        my $objects = my $versioning = $options{custom}->api_get_obs_bucket_info(bucket_name=>$instance,action=>'storageinfo');
-        print Dumper($objects);
-        # foreach my $metric (@{$self->{metrics}}) {
-        #         next if !defined($self->{option_results}->{zeroed}));
-
-        #         $self->{metrics}->{$instance}->{display} = $instance;
-        #         $self->{metrics}->{$instance}->{statistics}->->{$metric} = 
-        #             defined($metric_results{$instance}->{$metric}) ? 
-        #             $metric_results{$instance}->{$metric} : 0;
+        $metric_results{$instance} = $options{custom}->api_get_obs_bucket_info(bucket_name=>$instance,action=>'storageinfo');
+        
+        foreach my $metric (@{$self->{obs_metrics}}) {
+                $self->{metrics}->{$instance}->{display} = $instance;
+                $self->{metrics}->{$instance}->{$metric} = 
+                    defined($metric_results{$instance}->{$metric}) ? 
+                    0+$metric_results{$instance}->{$metric} : 0;
             
-        # }
+        }
     }
-    # if (scalar(keys %{$self->{metrics}}) <= 0) {
-    #     $self->{output}->add_option_msg(short_msg => 'No metrics. Check your options or use --zeroed option to set 0 on undefined values');
+     if (scalar(keys %{$self->{metrics}}) <= 0) {
+         $self->{output}->add_option_msg(short_msg => 'No metrics. Check your options or use --zeroed option to set 0 on undefined values');
         $self->{output}->option_exit();
-    #}
+    }
 }
 
 1;
@@ -161,12 +161,12 @@ __END__
 
 =head1 MODE
 
-Check OBS Buckets Object Counts.
+Check OBS Bucket's Objects Size and Counts.
 
 Example: 
 perl centreon_plugins.pl --plugin=cloud::flexibleengine::obs::plugin  --mode=objects --region='eu-west-0'
  --bucket-name='mybucket' --filter-metric='objects-count'
---critical-sobjects-count='10' --verbose
+--critical-objects-count='10' --verbose
 
 See 'https://docs.prod-cloud-ocb.orange-business.com/sdk-php-api/obs/en-us_topic_0142802652.html' for more informations.
 
@@ -178,12 +178,12 @@ Set the bucket name (Required) (Can be multiple).
 
 =item B<--filter-metric>
 
-Filter metrics (Can be 'objects-count')
+Filter metrics (Can be 'objects-count',objects-size)
 (Can be a regexp).
 
 =item B<--warning-*> B<--critical-*>
 
-Thresholds warning (Can be 'objects-count').
+Thresholds warning (Can be 'objects-count','objects-size').
 =back
 
 =cut
