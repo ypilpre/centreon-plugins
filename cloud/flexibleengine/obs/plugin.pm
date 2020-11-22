@@ -36,7 +36,6 @@ sub new {
         'bucketsize'      => 'cloud::flexibleengine::obs::mode::bucketsize',
         'traffic'      => 'cloud::flexibleengine::obs::mode::traffic',
         'requests'      => 'cloud::flexibleengine::obs::mode::requests',
-
             );
     $self->{custom_modes}{aksk} = 'cloud::flexibleengine::custom::aksk';
     return $self;
