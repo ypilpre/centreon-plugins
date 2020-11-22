@@ -48,7 +48,6 @@ sub new {
         SFS => $self->can('discover_sfs'),
         EVS => $self->can('discover_evs'),
         CCE => $self->can('discover_cce'),
-        OBS => $self->can('discover_cce'),
 
     };
     
