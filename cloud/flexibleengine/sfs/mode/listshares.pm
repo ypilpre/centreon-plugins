@@ -93,7 +93,7 @@ __END__
 
 =head1 MODE
 
-List ECS shares.
+List SFS shares.
 
 =over 8
 
