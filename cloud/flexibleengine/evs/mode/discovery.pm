@@ -95,7 +95,7 @@ __END__
 
 =head1 MODE
 
-ECS discovery.
+EVS discovery.
 
 =over 8
 
