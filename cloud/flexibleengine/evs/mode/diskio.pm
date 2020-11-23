@@ -40,15 +40,16 @@ my %metrics_mapping = (
         'unit' => 'B/s',
     },
     'disk_device_read_requests_rate' => {
-        'output' => 'Disk Write Ops',
-        'label' => 'disk-write-ops',
-        'nlabel' => 'evs.disk.ops.write.request.seconds',
-        'unit' => 'ops',
-    },
-    'disk_device_write_requests_rate' => {
         'output' => 'Disk Read Ops',
         'label' => 'disk-read-ops',
         'nlabel' => 'evs.disk.ops.read.request.seconds',
+        'unit' => 'ops',
+    },
+    
+    'disk_device_write_requests_rate' => {
+        'output' => 'Write Read Ops',
+        'label' => 'disk-write-ops',
+        'nlabel' => 'evs.disk.ops.write.request.seconds',
         'unit' => 'ops',
     },
     'disk_device_read_bytes_per_operation' => {
