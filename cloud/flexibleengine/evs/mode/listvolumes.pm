@@ -107,22 +107,28 @@ sub disco_show {
          if (defined($self->{option_results}->{server_id}) && $self->{option_results}->{server_id} ne '' ){
          if  (defined($_->{attachments}[0]->{server_id})){
             next if ($_->{attachments}[0]->{server_id} ne $self->{option_results}->{server_id}) ;
-              if  ($_->{attachments}[0]->{device} =~ /\/dev\/(.*)/) {}
-                   $attach_device = $2;
          }else{
              next;
          }
          };
+
+        if  (defined($_->{attachments}[0]->{server_id})){
+            if ($_->{attachments}[0]->{device} =~ /\/dev\/(.*)/) {
+                $attach_device = $1;
+            }
+        };
+
+
         $self->{output}->add_disco_entry(
         id => $_->{id},
         name => $_->{name},
         status => $_->{status},
         size => $_->{size},
         volume_type => $_->{volume_type},
-        device =>  $attach_device,
+        device =>  defined($attach_device)?$attach_device:'',
         function => ($_->{bootable} eq "true")?"System":"Data",
         encrypted => $_->{encrypted},
-        server_id => $_->{attachments}[0]->{server_id},
+        server_id => defined($_->{attachments}[0]->{server_id})?$_->{attachments}[0]->{server_id}:'',
         availability_zone => $_->{availability_zone},
         replication_status => $_->{replication_status},
         );
