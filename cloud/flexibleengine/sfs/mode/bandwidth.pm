@@ -28,7 +28,7 @@ use warnings;
 my %metrics_mapping = (
     'read_bandwidth' => {
         'output' => 'Read Bandwidth',
-        'label' => 'write-bytes-rate',
+        'label' => 'read-bytes-rate',
         'nlabel' => 'sfs.bw.bytes.read.bytespersecond',
         'unit' => 'B/s',
     },
