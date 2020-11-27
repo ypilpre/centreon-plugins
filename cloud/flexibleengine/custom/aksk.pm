@@ -52,6 +52,8 @@ my %obc_service_map = (
    'vpc' => {'type' => 'vpc'},
    'css' => {'type' => 'css'},
    'oss' => {'type' => 's3'},
+   'dcs' => {'type' => 'dcsv1'},
+
 
 
 );
@@ -600,6 +602,13 @@ sub api_list_dcs {
     return $list;
 }
 
+sub api_list_dcs_detail {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://dcs.'.$self->{region}.".".$self->{endpoint_domain};
+    my $detail = $self->request_api(method => 'GET',service=>'dcs', full_url =>$self->{endpoint}.'/v1.0/'.$self->{project_id}.'/instances/'.$options{instance_id},hostname => '');
+    return $detail;
+}
+
 sub api_list_eip {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://vpc.'.$self->{region}.".".$self->{endpoint_domain};
@@ -621,10 +630,18 @@ sub api_list_cce {
     return $list;
 }
 
-sub api_list_dds{
+sub api_list_dds {
     my ($self, %options) = @_;
     $self->{endpoint} = 'https://dds.'.$self->{region}.".".$self->{endpoint_domain};
     my $list = $self->request_api(method => 'GET',service=>'dds', full_url =>$self->{endpoint}.'/v3/'.$self->{project_id}.'/instances',hostname => '');
+    return $list;
+}
+
+
+sub api_list_ces_alarms {
+    my ($self, %options) = @_;
+    $self->{endpoint} = 'https://ces.'.$self->{region}.".".$self->{endpoint_domain};
+    my $list = $self->request_api(method => 'GET',service=>'ces', full_url =>$self->{endpoint}.'/V1.0/'.$self->{project_id}.'/alarms',hostname => '');
     return $list;
 }
 
@@ -636,7 +653,7 @@ sub api_cloudeye_list_metrics {
     if (defined($options{namespace})){
     $uri = $uri."?namespace=".$options{namespace};
     }
-    if (defined($options{metric})){
+    if (defined($options{metric}) && defined($options{namespace})){
     $uri = $uri."&metric_name=".$options{metric};
     }
     my $metrics_list = $self->request_api(method => 'GET',service=>'ces', full_url =>$uri,hostname => '');
