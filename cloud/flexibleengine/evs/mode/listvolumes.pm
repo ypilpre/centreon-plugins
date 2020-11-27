@@ -120,7 +120,7 @@ sub disco_show {
 
 
         $self->{output}->add_disco_entry(
-        id => $_->{id},
+        id => defined($attach_device)?$_->{attachments}[0]->{server_id}.'-'.$attach_device:$_->{id},
         name => $_->{name},
         status => $_->{status},
         size => $_->{size},
@@ -147,7 +147,8 @@ List EVS volumes.
 
 =item B<--server-id
 
-Filter Volumes by Server (First Attachment Only)
+Filter Volumes by Server (First Attachment Only, Shared Disk not Supported)
+
 
 =back
 
