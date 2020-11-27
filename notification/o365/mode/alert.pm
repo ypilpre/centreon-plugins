@@ -68,7 +68,7 @@ sub new {
             "timeout:s"             => { name => 'timeout' },
             "ssl-opt:s@"            => { name => 'ssl_opt' },
             });
-    $self->{http} = centreon::plugins::http->new(output => $self->{output});
+    $self->{http} = centreon::plugins::http->new(%options);
     $self->{body_sections} = []; 
     $self->{potiential_action} = [];
 
